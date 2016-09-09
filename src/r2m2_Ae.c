@@ -1,0 +1,62 @@
+// Copyright (C) 2016 Guillaume Valadon <guillaume@valadon.net>
+
+// r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
+
+#include <r_asm.h>
+#include <r_lib.h>
+#include "r2m2.h"
+#include "r2m2_Ae.h"
+
+
+static int analyze (RAnal *unused, RAnalOp *rop, ut64 addr, const ut8 *data, int len) {
+    // Analyze an instruction using miasm
+    memset (rop, 0, sizeof (RAnalOp));
+    rop->type = R_ANAL_OP_TYPE_UNK;
+
+    miasm_anal ((RAnalOp_r2m2*)rop, addr, data, len);
+
+    return rop->size;
+}
+
+
+static int set_reg_profile (RAnal *anal) {
+    // Set the registers profile using miasm
+    char *profile = miasm_get_reg_profile ();
+    return r_reg_set_profile_string (anal->reg, profile);
+}
+
+
+static int esil_r2m2_init (RAnalEsil *esil) {
+    // Set radare2 'pc' to 0x0
+    if (esil->anal && esil->anal->reg) {
+	RRegItem *reg_item = r_reg_get (esil->anal->reg, "pc", -1);
+        r_reg_set_value (esil->anal->reg, reg_item, 0x0000);
+    }
+    return true;
+}
+
+static int esil_r2m2_fini (RAnalEsil *unused) {
+    return true;
+}
+
+struct r_anal_plugin_t r_anal_plugin_r2m2 = {
+    .name = "r2m2",
+    .arch = "r2m2",
+    .license = "LGPL3",
+    .bits = R2M2_ARCH_BITS, // GV: seems fishy
+    .desc = "miasm2 backend",
+    .op = analyze,
+
+    .set_reg_profile = set_reg_profile,
+
+    .esil = true,
+    .esil_init = esil_r2m2_init,
+    .esil_fini = esil_r2m2_fini
+};
+
+#ifndef CORELIB
+struct r_lib_struct_t radare_plugin = {
+    .type = R_LIB_TYPE_ANAL,
+    .data = &r_anal_plugin_r2m2
+};
+#endif
