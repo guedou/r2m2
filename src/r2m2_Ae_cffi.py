@@ -67,7 +67,7 @@ def miasm_get_reg_profile():
     # Get the miasm2 machine
     machine = miasm_machine()
     if machine is None:
-        return ""
+        return ffi.new("char[]", "")
 
     # Get the miasm2 mnemonic class
     mn_cls = machine.mn
