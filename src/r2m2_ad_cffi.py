@@ -26,8 +26,9 @@ def miasm_machine():
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
 
-    else:
-        return Machine(r2m2_arch)
+        return None
+
+    return Machine(r2m2_arch)
 
 
 @ffi.def_extern()
