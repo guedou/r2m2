@@ -67,7 +67,7 @@ def miasm_get_reg_profile():
     # Get the miasm2 machine
     machine = miasm_machine()
     if machine is None:
-        return ffi.new("char[]", "")
+        return alloc_string("")
 
     # Get the miasm2 mnemonic class
     mn_cls = machine.mn
@@ -90,6 +90,10 @@ def miasm_get_reg_profile():
         reg_name = reg_name.replace("(", "_").replace(")", "_")
         reg_name = reg_name.replace("_", "")
 
+        # Remove internal miasm2 register
+        if reg_name == "exceptionflags":
+            continue
+
         # Adjust size padding and build the r2 register definition
         size_padding = " " * (6-(len(str(reg_expr.size))))
         # r2 format: type name .size offset packedsize
@@ -99,7 +103,7 @@ def miasm_get_reg_profile():
         # Compute register offset
         reg_offset += reg_expr.size / 8
 
-    return ffi.new("char[]", reg_profile)
+    return alloc_string(reg_profile)
 
 
 @ffi.def_extern()
