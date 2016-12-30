@@ -191,7 +191,7 @@ def r2_anal_splitflow(analop, address, instruction, expression):
 
     # Get the IR and only keep affectations
     iir, _ = ir.get_ir(instruction)
-    aff = [i for i in iir if isinstance(i, ExprAff)] 
+    aff = [i for i in iir if isinstance(i, ExprAff)]
 
     # Only keep one affectation to 'PC'
     current_pc = machine.mn.getpc(mode)
@@ -237,9 +237,14 @@ def get_esil(analop, instruction):
     """Fill the r2 analop structure"""
 
     esil_string = m2instruction_to_r2esil(instruction)
-    if esil_string and len(esil_string) < 64:  # hardcoded RStrBuf limitation
-        analop.esil.buf = esil_string
-        analop.esil.len = len(esil_string)
+    if esil_string:
+        # Write the ESIL string to the buffer or allocate a string
+        if len(esil_string) < 64:
+            analop.esil.buf = esil_string
+            analop.esil.len = len(esil_string)
+        else:
+            analop.esil.ptr = alloc_string(esil_string)
+            analop.esil.len = len(esil_string)
 
 
 def m2instruction_to_r2esil(instruction):
@@ -268,18 +273,10 @@ def m2instruction_to_r2esil(instruction):
     else:
         result = [m2expr_to_r2esil(i) for i in iir]
 
-        tmp_result = ",".join(result)
-        if len(tmp_result) < 64:  # hardcoded RStrBuf limitation
-            return tmp_result
+        if not len(result):
+            return None
 
-        tmp_result = ""
-        for esil in result:
-            if (len(tmp_result) + len(esil) + 1) < 64:
-                tmp_result += ",%s" % esil
-            else:
-                #print >> sys.stderr, "Truncated ESIL !"
-                break
-        return tmp_result
+        return ",".join(result)
 
 
 def m2expr_to_r2esil(iir):
