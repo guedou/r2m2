@@ -29,8 +29,11 @@ static int set_reg_profile (RAnal *anal) {
 static int esil_r2m2_init (RAnalEsil *esil) {
     // Set radare2 'pc' to 0x0
     if (esil->anal && esil->anal->reg) {
-	RRegItem *reg_item = r_reg_get (esil->anal->reg, "pc", -1);
-        r_reg_set_value (esil->anal->reg, reg_item, 0x0000);
+        RRegItem *reg_item = r_reg_get (esil->anal->reg, "pc", -1);
+
+        if (reg_item) {
+            r_reg_set_value (esil->anal->reg, reg_item, 0x0000);
+        }
     }
     return true;
 }
