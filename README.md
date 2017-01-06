@@ -81,8 +81,11 @@ $ docker run --rm -it -e 'R2M2_ARCH=x86_64' guedou/r2m2
 ### Debian
 
 The following softwares must be installed:
+
 1. radare2
+
 2. miasm2
+
 3. CFFI Python module (>= 1.6)
 
 r2m2 can be built as follows:
