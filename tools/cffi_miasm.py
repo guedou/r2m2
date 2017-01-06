@@ -39,7 +39,8 @@ char *strncpy(char *dest, const char *src, size_t n);
 # Python code that will be embedded
 ffi.embedding_init_code("".join(open("src/%s_cffi.py" % args.plugin_name).readlines()))
 
-# Compile the library
+# Compile the library, or dump the C code
 if args.dump:
   ffi.emit_c_code("miasm_embedded_%s.c" % args.plugin_name)
-ffi.compile(verbose=True)
+else:
+  ffi.compile(verbose=True)
