@@ -203,10 +203,10 @@ def r2_anal_splitflow(analop, address, instruction, expression):
     if isinstance(aff.src, ExprCond):
 
         # Retrieve, or guess, the condition operator
-        if isinstance(aff.src._cond, ExprId):
+        if isinstance(aff.src.cond, ExprId):
             operator = R_ANAL_COND_EQ
         else:
-            operator = aff.src._cond._op
+            operator = aff.src.cond.op
 
         # Get the r2 condition analysis type
         r2cond = m2op_to_r2cond(operator)
@@ -260,8 +260,8 @@ def m2instruction_to_r2esil(instruction):
 
     # Remove IRDst
     for i in iir:
-        if isinstance(i, ExprAff) and isinstance(i._dst, ExprId) \
-           and i._dst._name == "IRDst":
+        if isinstance(i, ExprAff) and isinstance(i.dst, ExprId) \
+           and i.dst.name == "IRDst":
             iir.remove(i)
 
     if eiir:
@@ -283,40 +283,39 @@ def m2expr_to_r2esil(iir):
     """Convert a miasm2 expression to a radare2 ESIL"""
 
     if isinstance(iir, ExprId):
-        if not isinstance(iir._name, str):
+        if not isinstance(iir.name, str):
             return "TODO"
-        #    print type(iir._name), iir._name, iir._name.offset
-        #    return "0x%x" % iir._name.offset
-        return iir._name.lower()
+        return iir.name.lower()
 
     if isinstance(iir, ExprInt):
-        return "0x%x" % iir._arg
+        return "0x%x" % iir.arg
 
     if isinstance(iir, ExprMem):
-        ret = "%s,[]" % m2expr_to_r2esil(iir._arg)
+        ret = "%s,[]" % m2expr_to_r2esil(iir.arg)
         return ret.lower()
 
     elif isinstance(iir, ExprAff):
-        if not isinstance(iir._dst, ExprMem):
-            esil_dst = m2expr_to_r2esil(iir._dst)
-            return "%s,%s,=" % (m2expr_to_r2esil(iir._src), esil_dst)
+        if not isinstance(iir.dst, ExprMem):
+            esil_dst = m2expr_to_r2esil(iir.dst)
+            return "%s,%s,=" % (m2expr_to_r2esil(iir.src), esil_dst)
         else:
-            esrc = m2expr_to_r2esil(iir._src)
-            edst = m2expr_to_r2esil(iir._dst._arg)
+            esrc = m2expr_to_r2esil(iir.src)
+            edst = m2expr_to_r2esil(iir.dst.arg)
             return "%s,%s,=[]" % (esrc, edst)
 
     elif isinstance(iir, ExprOp):
-        if len(iir._args) == 2:
-            arg_1 = m2expr_to_r2esil(iir._args[1])
-            arg_0 = m2expr_to_r2esil(iir._args[0])
-            return "%s,%s,%s" % (arg_1, arg_0, iir._op)
+        if len(iir.args) == 2:
+            arg_1 = m2expr_to_r2esil(iir.args[1])
+            arg_0 = m2expr_to_r2esil(iir.args[0])
+            return "%s,%s,%s" % (arg_1, arg_0, iir.op)
         else:
-            return "0,%s,%s" % (m2expr_to_r2esil(iir._args[0]), iir._op)
+            return "0,%s,%s" % (m2expr_to_r2esil(iir.args[0]), iir.op)
 
     elif isinstance(iir, ExprCompose):
 
         esil_strings = []
-        for expr, start, stop in iir.args:
+        for start, expr in iir.iter_args():
+            stop = start + expr.size
             mask = (2**stop -1) - (2**start -1)
             esil_strings.append("%s,0x%x,&" % (m2expr_to_r2esil(expr), mask))
 
@@ -336,31 +335,31 @@ def m2expr_to_r2esil(iir):
 
     elif isinstance(iir, ExprCond):
 
-        if isinstance(iir._cond, ExprSlice):
+        if isinstance(iir.cond, ExprSlice):
 
             # Attempt to evaluate the expression
-            result = expr_simp(iir._cond)
+            result = expr_simp(iir.cond)
 
             if isinstance(result, ExprInt):
                 if result.arg != 0:
-                    tmp_src = iir._src1
+                    tmp_src = iir.src1
                 else:
-                    tmp_src = iir._src2
+                    tmp_src = iir.src2
             else:
-                tmp = m2expr_to_r2esil(iir._cond)
-                esil_string = "%s,0,!=,?{,%s,},%s,0,==,?{,%s,}" % (tmp, iir._src1, tmp, iir._src2)
+                tmp = m2expr_to_r2esil(iir.cond)
+                esil_string = "%s,?{,%s,},?{,%s,}" % (tmp, iir.src1, iir.src2)
                 return esil_string
 
             return m2expr_to_r2esil(tmp_src)
 
-        elif isinstance(iir._cond, ExprOp):
+        elif isinstance(iir.cond, ExprOp):
             condition = m2expr_to_r2esil(iir.cond)
             if_clause = m2expr_to_r2esil(iir.src1)
             then_clause = m2expr_to_r2esil(iir.src2)
             return "%s,?{,%s,}{,%s,}" % (condition, if_clause, then_clause)
 
-        elif isinstance(iir._cond, ExprInt):
-            if int(iir._cond.arg):
+        elif isinstance(iir.cond, ExprInt):
+            if int(iir.cond.arg):
                 return m2expr_to_r2esil(iir.src1)
             else:
                 return m2expr_to_r2esil(iir.src2)
