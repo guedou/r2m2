@@ -52,8 +52,6 @@ r2m2$ R2M2_ARCH=mips32b r2 -a r2m2 j_nop.bin -qc 'pd 2'
 
 ## Building and testing r2m2
 
-Note that r2m2 was only tested on Linux.
-
 ### Docker
 
 The `Dockerfile` takes care of everything, and builds r2m2.  The following
@@ -78,7 +76,7 @@ $ docker run --rm -it -e 'R2M2_ARCH=x86_64' guedou/r2m2
             0x000048c7      4989d1         mov r9, rdx
 ```
 
-### Debian
+### Linux & OS X
 
 The following softwares must be installed:
 
@@ -88,12 +86,13 @@ The following softwares must be installed:
 
 3. CFFI Python module (>= 1.6)
 
+4. jinja2 Python module (>= 1.6)
+
 r2m2 can be built as follows:
 ```
-$ rm src/r2m2.h  # ensure that r2m2 uses up-to-date r2 headers
 $ make all install
 [..]
-cp -f r2m2_ad.so r2m2_Ae.so [..]
+mkdir -p [..]
 ```
 
 You can type the following command to check that everything went fine:
