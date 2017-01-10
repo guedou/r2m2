@@ -88,6 +88,7 @@ def get_RAnalOp_structure(directory):
     RList_structure = [l for l in include_content.split("\n") if "typedef" in l and "RListFree" in l][0]
     RList_structure += extract_structure(include_content, "RListIter")
     RList_structure += extract_structure(include_content, "RList").replace("RListIter", "RListIter_r2m2")
+    RList_structure = RList_structure.replace("RListFree", "RListFree_r2m2")
     structures.append(RList_structure)
 
 

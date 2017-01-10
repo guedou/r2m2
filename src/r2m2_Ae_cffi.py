@@ -18,7 +18,7 @@ from miasm_embedded_r2m2_Ae import ffi
 
 
 # libc CFFI handle
-CFFI_LIBC = ffi.dlopen("libc.so.6")
+CFFI_LIBC = ffi.dlopen()
 
 def alloc_string(string):
     """malloc & strcpy a string.
