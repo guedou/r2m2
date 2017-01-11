@@ -1,5 +1,6 @@
 # r2m2 - use miasm2 as a radare2 plugin
 
+[![Build Status](https://travis-ci.org/guedou/r2m2.svg?branch=master)](https://travis-ci.org/guedou/r2m2)
 
 ## Overview
 
