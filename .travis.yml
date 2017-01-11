@@ -1,0 +1,36 @@
+sudo: required
+
+language: python
+
+matrix:
+    include:
+        - os: linux
+          dist: trusty
+          sudo: required
+          python: 2.7
+          env:
+            - R2_VERSION=1.1.0
+
+install:
+  # Install C related dependencies
+  - sudo apt-get install make gcc git pkg-config
+  # Install Python related dependencies
+  - sudo apt-get install python-pip libffi-dev libpython-dev
+  - pip install cffi jinja2
+  # Install radare2
+  - git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION && cd radare2 && ./sys/user.sh --without-pull && cd ..
+  - export PATH=$HOME:$PATH
+  - export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/
+  # Install miasm2
+  - pip install pyparsing
+  - git clone https://github.com/cea-sec/miasm --depth 1
+  # Install bats
+  - git clone https://github.com/sstephenson/bats --depth 1
+  - export PATH=bats/bin:$PATH
+
+script:
+  # Build & install r2m2
+  - make install
+  - export PYTHONPATH=miasm/
+  # Launch tests
+  - bats test/r2m2.bats
