@@ -9,6 +9,13 @@
 
 
 static int analyze (RAnal *unused, RAnalOp *rop, ut64 addr, const ut8 *data, int len) {
+     // If the size is set, the instruction was already processed
+     // Note: this is a trick to enhance performances, as radare2 calls analyze()
+     //       several times.
+     if (rop->size) {
+         return rop->size;
+     }
+
     // Analyze an instruction using miasm
     memset (rop, 0, sizeof (RAnalOp));
     rop->type = R_ANAL_OP_TYPE_UNK;
