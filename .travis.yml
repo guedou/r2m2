@@ -1,5 +1,8 @@
 sudo: required
 
+services:
+  - docker
+
 language: python
 
 matrix:
@@ -10,6 +13,9 @@ matrix:
           python: 2.7
           env:
             - R2_VERSION=1.1.0
+
+before_install:
+  - docker build -t travis/r2m2 .
 
 install:
   # Install C related dependencies
@@ -34,3 +40,5 @@ script:
   - export PYTHONPATH=miasm/
   # Launch tests
   - bats test/r2m2.bats
+  # Launch Docker based tests
+  - docker run --rm -it travis/r2m2 bats test/r2m2.bats
