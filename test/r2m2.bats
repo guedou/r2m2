@@ -26,7 +26,7 @@
 
 @test "Emulate JUMP" {
   # Assemble instructions
-  R2M2_ARCH=mips32b rasm2 -a r2m2 'J 0x4; NOP' -B > binary
+  R2M2_ARCH=mips32b rasm2 -a r2m2 -B 'J 0x4; NOP' > binary
   # Call r2
   result=$(R2M2_ARCH=mips32b r2 -a r2m2 -qc 'e asm.emu=true; pd 2' binary)
   echo $result
@@ -35,7 +35,7 @@
 
 @test "Emulate ADDIU" {
   # Assemble ADDIU
-  R2M2_ARCH=mips32l rasm2 -a r2m2 'ADDIU A0, A1, 2' -B > binary
+  R2M2_ARCH=mips32l rasm2 -a r2m2 -B 'ADDIU A0, A1, 2' > binary
   # Call r2 and set a value to A1
   result=$(R2M2_ARCH=mips32l r2 -a r2m2 -qc 'e asm.emu=true ; ae 0x40,a1,=; pd 1' binary)
   echo $result
@@ -44,7 +44,7 @@
 
 @test "Emulate LB" {
   # Assemble LB
-  R2M2_ARCH=mips32b rasm2 -a r2m2 'LB A0, 0x1(A1)' -B > binary
+  R2M2_ARCH=mips32b rasm2 -a r2m2 -B 'LB A0, 0x1(A1)' > binary
   # Call r2
   result=$(R2M2_ARCH=mips32b r2 -a r2m2 -qc 'e asm.emu=true ; pd 1' binary)
   echo $result

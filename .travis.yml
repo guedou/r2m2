@@ -1,44 +1,54 @@
-sudo: required
-
-services:
-  - docker
-
 language: python
 
 matrix:
-    include:
-        - os: linux
-          dist: trusty
-          sudo: required
-          python: 2.7
-          env:
-            - R2_VERSION=1.1.0
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      python: 2.7
+      env:
+        - R2_VERSION=1.1.0 R2M2_UBUNTU=yes
+
+    - os: linux
+      dist: trusty
+      python: 2.7
+      sudo: required
+      env:
+        - R2M2_DOCKER=yes
+
+    - os: osx
+      language: generic
+      env:
+        - R2_VERSION=1.1.0 R2M2_OSX=yes
 
 before_install:
-  - docker build -t travis/r2m2 .
+  - if [ ! -z $R2M2_DOCKER ]; then docker build -t travis/r2m2 . ; fi
 
 install:
+  ### Ubuntu & OS X ###
   # Install C related dependencies
-  - sudo apt-get install make gcc git pkg-config
+  - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install make gcc git pkg-config; fi
   # Install Python related dependencies
-  - sudo apt-get install python-pip libffi-dev libpython-dev
-  - pip install cffi jinja2
+  - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install python-pip libffi-dev libpython-dev; fi
+  - if [ -z $R2M2_DOCKER ]; then pip install cffi jinja2; fi
   # Install radare2
-  - git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION && cd radare2 && ./sys/user.sh --without-pull && cd ..
-  - export PATH=$HOME:$PATH
-  - export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/
+  - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION; cd radare2; ./sys/user.sh --without-pull; cd ..; fi
+  - if [ -z $R2M2_DOCKER ]; then export PATH=$HOME/bin/:$PATH; fi
+  - if [ -z $R2M2_DOCKER ]; then export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/; fi
   # Install miasm2
-  - pip install pyparsing
-  - git clone https://github.com/cea-sec/miasm --depth 1
+  - if [ -z $R2M2_DOCKER ]; then pip install pyparsing; fi
+  - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/cea-sec/miasm --depth 1; fi
   # Install bats
-  - git clone https://github.com/sstephenson/bats --depth 1
-  - export PATH=bats/bin:$PATH
+  - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/sstephenson/bats --depth 1; fi
+  - if [ -z $R2M2_DOCKER ]; then export PATH=bats/bin:$PATH; fi
 
 script:
+  ### Ubuntu & OS X ###
   # Build & install r2m2
-  - make install
-  - export PYTHONPATH=miasm/
+  - if [ -z $R2M2_DOCKER ]; then make install; fi
+  - if [ -z $R2M2_DOCKER ]; then export PYTHONPATH=miasm/; fi
   # Launch tests
-  - bats test/r2m2.bats
+  - if [ -z $R2M2_DOCKER ]; then bats test/r2m2.bats; fi
+  ### Docker ###
   # Launch Docker based tests
-  - docker run --rm -it travis/r2m2 bats test/r2m2.bats
+  - if [ ! -z $R2M2_DOCKER ]; then docker run --rm -it travis/r2m2 bats test/r2m2.bats; fi
