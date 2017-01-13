@@ -284,11 +284,12 @@ def m2expr_to_r2esil(iir):
 
     if isinstance(iir, ExprId):
         if not isinstance(iir.name, str):
-            return "TODO"
+            # Get the miasm2 asm_label offset
+            return hex(iir.name.offset)
         return iir.name.lower()
 
     if isinstance(iir, ExprInt):
-        return "0x%x" % iir.arg
+        return hex(iir.arg)
 
     if isinstance(iir, ExprMem):
         ret = "%s,[]" % m2expr_to_r2esil(iir.arg)
@@ -317,7 +318,7 @@ def m2expr_to_r2esil(iir):
         for start, expr in iir.iter_args():
             stop = start + expr.size
             mask = (2**stop -1) - (2**start -1)
-            esil_strings.append("%s,0x%x,&" % (m2expr_to_r2esil(expr), mask))
+            esil_strings.append("%s,%s,&" % (m2expr_to_r2esil(expr), hex(mask)))
 
         l = esil_strings
         if len(l) == 2:
@@ -331,7 +332,7 @@ def m2expr_to_r2esil(iir):
     elif isinstance(iir, ExprSlice):
 
         mask = (2**iir.stop -1) - (2**iir.start -1)
-        return "%s,0x%x,&" % (m2expr_to_r2esil(iir.arg), mask)
+        return "%s,%s,&" % (m2expr_to_r2esil(iir.arg), hex(mask))
 
     elif isinstance(iir, ExprCond):
 
