@@ -52,10 +52,19 @@
 }
 
 @test "Emulate CALL" {
-  # Assemble CALL
-  rasm2 -B 'call 0x337c' > binary
+  # Assemble CALL
+  rasm2 -B 'CALL 0x337c' > binary
   # Call r2
   result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -qc 'e asm.emu=true ; pd 1' binary)
   echo $result
   [[ $result == *"rip=0x337c"* ]]
+}
+
+@test "Emulate JMP" {
+  # Assemble CALL
+  rasm2 -B 'JMP 0x28' > binary
+  # Call r2
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'pd 2' binary)
+  echo $result
+  [[ $result == *",=<"* ]]
 }
