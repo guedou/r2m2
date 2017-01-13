@@ -57,10 +57,19 @@ def miasm_dis(r2_buffer, r2_length, r2_op):
         dis_str = "/!\ Can't disassemble using miasm /!\\"
         dis_len = 2  # GV: seems fischy !
 
+    # Remaining bytes
+    buf_hex = opcode[0:dis_len].encode("hex")
+
+    # Check buffer sizes
+    if len(dis_str)-1 > 256:
+        dis_str = "/!\ Disassembled instruction is too long /!\\"
+    if len(buf_hex)-1 > 256:
+        buf_hex = buf_hex[:255]
+
     # Fill the RAsmOp structure
     rasmop.size = dis_len
     rasmop.buf_asm = dis_str
-    rasmop.buf_hex = opcode[0:rasmop.size].encode("hex")
+    rasmop.buf_hex = buf_hex
 
 
 @ffi.def_extern()
@@ -88,7 +97,17 @@ def miasm_asm(r2_buffer, r2_op):
     instr = mn.fromstring(mn_str, mode)
     asm_instr = [i for i in mn.asm(instr)][0]
 
+    # Assembled instructions in hexadecimal
+    buf_hex = asm_instr.encode("hex")
+
+    # Check buffer sizes
+    if len(asm_instr)-1 > 256:
+        print >> sys.stderr, "/!\ Assembled instruction is too long /!\\"
+        return
+    if len(buf_hex)-1 > 256:
+        buf_hex = buf_hex[:255]
+
     # Fill the RAsmOp structure
     rasmop.size = len(asm_instr)
     rasmop.buf = asm_instr
-    rasmop.buf_hex = asm_instr.encode("hex")
+    rasmop.buf_hex = buf_hex
