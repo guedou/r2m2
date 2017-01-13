@@ -50,3 +50,12 @@
   echo $result
   [[ $result == *"a0=0xa4"* ]]
 }
+
+@test "Emulate CALL" {
+  # Assemble CALL
+  rasm2 -B 'call 0x337c' > binary
+  # Call r2
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -qc 'e asm.emu=true ; pd 1' binary)
+  echo $result
+  [[ $result == *"rip=0x337c"* ]]
+}
