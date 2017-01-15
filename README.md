@@ -73,19 +73,20 @@ root@11da1889a490:/home/r2m2# rasm2 -a r2m2 "addiu a0, a1, 2"
 0200a424
 
 r2m2$ docker run --rm -it -e 'R2M2_ARCH=x86_64' guedou/r2m2
- -- The door is everything ...
+ -- One does not simply write documentation.
 [0x00000000]> o /bin/ls
 4
+[0x0000487f]> e anal.arch=r2m2
 [0x0000487f]> e asm.emu=true
 [0x0000487f]> pd 10
             ;-- entry0:
-            0x0000487f      31ed           xor ebp, ebp                ; ebp=0x0  ; zf=0x1  ; pf=0x1  ; sf=0x0  ; cf=0x0  ; of=0x0  ; rbp=0x0 
+            0x0000487f      31ed           xor ebp, ebp                ; zf=0x1  ; nf=0x0 
             0x00004881      4989d1         mov r9, rdx                 ; r9=0x0 
-            0x00004884      5e             pop rsi                    
-            0x00004885      4889e2         mov rdx, rsp                ; rdx=0x0 
-            0x00004888      4883e4f0       and rsp, 0xfffffffffffffff0 ; rsp=0x0  ; of=0x0  ; cf=0x0  ; zf=0x1  ; sf=0x0  ; pf=0x0 
-            0x0000488c      50             push rax                    ; rsp=0xfffffffffffffff8 -> 0xffffff00
-            0x0000488d      54             push rsp                    ; rsp=0xfffffffffffffff0 -> 0xffffff00
+            0x00004884      5e             pop rsi                     ; rsp=0x8  ; rsi=0x0 
+            0x00004885      4889e2         mov rdx, rsp                ; rdx=0x8 
+            0x00004888      4883e4f0       and rsp, 0xfffffffffffffff0 ; zf=0x1  ; nf=0x0 
+            0x0000488c      50             push rax                    ; rsp=0x10 
+            0x0000488d      54             push rsp                    ; rsp=0x18 
             0x0000488e      49c7c0301d41.  mov r8, 0x411d30            ; r8=0x411d30 -> 0xffffff00
             0x00004895      48c7c1c01c41.  mov rcx, 0x411cc0           ; rcx=0x411cc0 -> 0xffffff00
             0x0000489c      48c7c7c02840.  mov rdi, 0x4028c0           ; rdi=0x4028c0 -> 0xffffff00

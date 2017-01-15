@@ -169,7 +169,7 @@ def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
 
         if isinstance(expr, ExprInt):
             r2_analop.type = R_ANAL_OP_TYPE_JMP
-            r2_analop.jump = r2_addr + int(expr.arg)
+            r2_analop.jump = (r2_addr + int(expr.arg)) & 0xFFFFFFFFFFFFFFFF
 
         elif isinstance(expr, ExprId):
             r2_analop.type = R_ANAL_OP_TYPE_UJMP
@@ -216,8 +216,8 @@ def r2_anal_splitflow(analop, address, instruction, expression):
         # Fill the RAnalOp structure
         analop.type = R_ANAL_OP_TYPE_CJMP
         analop.cond = r2cond
-        analop.jump = address + int(expression.arg)
-        analop.fail = address + instruction.l
+        analop.jump = (address + int(expression.arg)) & 0xFFFFFFFFFFFFFFFF
+        analop.fail = (address + instruction.l) & 0xFFFFFFFFFFFFFFFF
 
     else:
         print >> sys.stderr, "r2_anal_splitflow(): don't know what to do with: %s" % instruction
@@ -228,7 +228,7 @@ def r2_anal_subcall(analop, address, expression):
 
     if isinstance(expression, ExprInt):
         analop.type = R_ANAL_OP_TYPE_CALL
-        analop.jump = address + int(expression.arg)
+        analop.jump = (address + int(expression.arg)) & 0xFFFFFFFFFFFFFFFF
     else:
         analop.type = R_ANAL_OP_TYPE_UCALL
 
