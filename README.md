@@ -1,26 +1,20 @@
 # r2m2 - use miasm2 as a radare2 plugin
 
 [![Build Status](https://travis-ci.org/guedou/r2m2.svg?branch=master)](https://travis-ci.org/guedou/r2m2)
+[![GitHub tag](https://img.shields.io/github/tag/guedou/r2m2.svg)](https://github.com/guedou/r2m2/releases)
+[![Docker Automated buil](https://img.shields.io/docker/automated/guedou/r2m2.svg)](https://hub.docker.com/r/guedou/r2m2/)
+[![Twitter Follow](https://img.shields.io/twitter/follow/guedou.svg?style=social)](https://twitter.com/intent/follow?screen_name=guedou)
 
-## Overview
+r2m2 is a [radare2](https://github.com/radare/radare2) plugin that aims at easing reversing new architectures by leveraging radare2 and [miasm2](https://github.com/cea-sec/mia) features. Its goal is to be as architecture independent as possible.
 
-r2m2 is a [radare2](https://github.com/radare/radare2) plugin that uses
-[miasm2](https://github.com/cea-sec/miasm) as its backend. It aims at easing
-reversing new architectures by leveraging
-[radare2](https://github.com/radare/radare2) and
-[miasm2](https://github.com/cea-sec/miasm) features. It was designed to be as
-architecture independent as possible.
+It bridges the radare2 and miasm2 communities: radare2 being the graphical interface of miasm2, and miasm2 simplifying the implementation of new architectures.
 
-The `R2M2_ARCH` environment variable is used to select the architecture that
-will be used by miasm2.
-
-
-## Author
-
-  * Guillaume VALADON <guillaume@valadon.net>
+Currently, r2m2 is able to assemble, disassemble, split blocs, using miasm2,  and convert internal miasm2 expressions to radare2 ESIL.
 
 
 ## Demos
+
+r2m2 provides a single radare2 plugin, that can be enabled using the `-a` option used in most radare2 commands. The `R2M2_ARCH` environment variable is used to select the architecture that will be used.
 
 ### Assemble and disassemble MIPS32 using rasm2
 
@@ -45,39 +39,61 @@ r2m2$ R2M2_ARCH=msp430 r2 -a r2m2 -qc 'woR; pd 5' -
 ```
 r2m2$ R2M2_ARCH=mips32b rasm2 -a r2m2 'j 0x4; nop' -B > j_nop.bin
 
-r2m2$ R2M2_ARCH=mips32b r2 -a r2m2 j_nop.bin -qc 'pd 2'
+r2m2$ R2M2_ARCH=mips32b r2 -a r2m2 -qc 'pd 2' j_nop.bin
         ,=< 0x00000000      0c000001       JAL        0x4
         `-> 0x00000004      00000000       NOP
 ```
 
 
-## Building and testing r2m2
+## Testing r2m2
+
+[Docker](https://www.docker.com/) is the recommended solution to use r2m2. Each pull requests are tested with Travis. Upon success, a Docker image is built on [Docker Hub](https://hub.docker.com) and can easily be pulled as follows:
+
+```
+r2m2$ docker pull guedou/r2m2
+
+r2m2$ docker run --rm -it -e 'R2M2_ARCH=mips32l' guedou/r2m2 rasm2 -a r2m2 "addiu a0, a1, 2"
+0200a424
+```
+
+
+## Building r2m2
 
 ### Docker
 
-The `Dockerfile` takes care of everything, and builds r2m2.  The following
-command lines show how to build the [Docker](https://www.docker.com/) image,
-run a temporary container, and test r2m2:
+The `Dockerfile` takes care of everything, and builds r2m2.  The following command lines show how to build the Docker image, run a temporary container, and test r2m2:
 
 ```
-$ docker build -t guedou/r2m2 .
+r2m2$ docker build -t guedou/r2m2 .
 
-$ docker run --rm -it -e 'R2M2_ARCH=mips32l' guedou/r2m2 bash
-root@11da1889a490:/home/r2m2# rasm2 -L |grep r2m2            
+r2m2$ docker run --rm -it -e 'R2M2_ARCH=mips32l' guedou/r2m2 bash
+root@11da1889a490:/home/r2m2# rasm2 -L |grep r2m2
 adAe  32         r2m2        LGPL3   miasm2 backend
-root@11da1889a490:/home/r2m2# rasm2 -a r2m2 "addiu a0, a1, 2" 
+root@11da1889a490:/home/r2m2# rasm2 -a r2m2 "addiu a0, a1, 2"
 0200a424
 
-$ docker run --rm -it -e 'R2M2_ARCH=x86_64' guedou/r2m2
- -- *(ut64*)buffer ought to be illegal
+r2m2$ docker run --rm -it -e 'R2M2_ARCH=x86_64' guedou/r2m2
+ -- The door is everything ...
 [0x00000000]> o /bin/ls
-[0x000048c5]> pd 2
+4
+[0x0000487f]> e asm.emu=true
+[0x0000487f]> pd 10
             ;-- entry0:
-            0x000048c5      31ed           xor ebp, ebp
-            0x000048c7      4989d1         mov r9, rdx
+            0x0000487f      31ed           xor ebp, ebp                ; ebp=0x0  ; zf=0x1  ; pf=0x1  ; sf=0x0  ; cf=0x0  ; of=0x0  ; rbp=0x0 
+            0x00004881      4989d1         mov r9, rdx                 ; r9=0x0 
+            0x00004884      5e             pop rsi                    
+            0x00004885      4889e2         mov rdx, rsp                ; rdx=0x0 
+            0x00004888      4883e4f0       and rsp, 0xfffffffffffffff0 ; rsp=0x0  ; of=0x0  ; cf=0x0  ; zf=0x1  ; sf=0x0  ; pf=0x0 
+            0x0000488c      50             push rax                    ; rsp=0xfffffffffffffff8 -> 0xffffff00
+            0x0000488d      54             push rsp                    ; rsp=0xfffffffffffffff0 -> 0xffffff00
+            0x0000488e      49c7c0301d41.  mov r8, 0x411d30            ; r8=0x411d30 -> 0xffffff00
+            0x00004895      48c7c1c01c41.  mov rcx, 0x411cc0           ; rcx=0x411cc0 -> 0xffffff00
+            0x0000489c      48c7c7c02840.  mov rdi, 0x4028c0           ; rdi=0x4028c0 -> 0xffffff00
 ```
 
 ### Linux & OS X
+
+**Note:** automatic builds are performed on Ubuntu, Arch Linux, and Mac OS X.  Other distributions might not work due to libraries incompatibilities.
 
 The following softwares must be installed:
 
@@ -91,22 +107,21 @@ The following softwares must be installed:
 
 r2m2 can be built as follows:
 ```
-$ make all install
+r2m2$ make all install
 [..]
 mkdir -p [..]
 ```
 
 You can type the following command to check that everything went fine:
 ```
-$ rasm2 -L |grep r2m2            
+r2m2$ rasm2 -L |grep r2m2
 adAe  32         r2m2        LGPL3   miasm2 backend
 ```
 
 
 ## Compilation warnings
 
-If you get the following error, the CFFI Python module version is not >= 1.6.
-You need to upgrade it, for example using PIP in a virtualenv.
+If you get the following error, the CFFI Python module version is not >= 1.6.  You need to upgrade it, for example using PIP in a virtualenv.
 ```
 AttributeError: 'FFI' object has no attribute 'set_source'
 ```
