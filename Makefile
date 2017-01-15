@@ -8,7 +8,7 @@ R2_CFLAGS=-g -fPIC $(shell pkg-config --cflags r_asm)
 # Prepare r2m2 specific variables
 SO_EXT=$(shell uname|grep -q Darwin && echo dylib || echo so)
 R2M2_LDFLAGS=-shared $(shell pkg-config --libs r_asm) 
-R2M2_LIBS=r2m2_ad.$(SO_EXT) r2m2_Ae.$(SO_EXT)
+R2M2_LIBS=r2m2_ad.$(SO_EXT) r2m2_Ae.$(SO_EXT) miasm_embedded_r2m2_ad.$(SO_EXT) miasm_embedded_r2m2_Ae.$(SO_EXT)
 
 # OS detection
 OS=$(shell uname)
