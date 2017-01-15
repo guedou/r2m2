@@ -60,6 +60,15 @@
   [[ $result == *"rip=0x337c"* ]]
 }
 
+@test "Emulate JZ" {
+  # Assemble JZ
+  rasm2 -B 'JZ 0x28' > binary
+  # Call r2
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x1000 -qc 'e asm.esil=true; pd 1' binary)
+  echo $result
+  [[ $result == *"zf,?{"* ]]
+}
+
 @test "Emulate JMP" {
   # Assemble CALL
   rasm2 -B 'JMP 0x28' > binary

@@ -284,7 +284,7 @@ def m2expr_to_r2esil(iir):
 
     if isinstance(iir, ExprId):
         if not isinstance(iir.name, str):
-            # Get the miasm2 asm_label offset
+            # Get the miasm2 asm_label offset
             return hex(iir.name.offset)
         return iir.name.lower()
 
@@ -353,7 +353,8 @@ def m2expr_to_r2esil(iir):
 
             return m2expr_to_r2esil(tmp_src)
 
-        elif isinstance(iir.cond, ExprOp):
+        elif isinstance(iir.cond, ExprOp) or isinstance(iir.cond, ExprId) or \
+             isinstance(iir.cond, ExprCond):
             condition = m2expr_to_r2esil(iir.cond)
             if_clause = m2expr_to_r2esil(iir.src1)
             then_clause = m2expr_to_r2esil(iir.src2)
