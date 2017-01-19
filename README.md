@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/guedou/r2m2.svg?branch=master)](https://travis-ci.org/guedou/r2m2)
 [![GitHub tag](https://img.shields.io/github/tag/guedou/r2m2.svg)](https://github.com/guedou/r2m2/releases)
 [![Docker Automated buil](https://img.shields.io/docker/automated/guedou/r2m2.svg)](https://hub.docker.com/r/guedou/r2m2/)
-<a href="https://dply.co/b/nHYke76B"><img src="https://dply.co/b.svg" height=20/></a>
+<a href="https://dply.co/b/GmWkkvVs"><img src="https://dply.co/b.svg" height=20/></a>
 [![Twitter Follow](https://img.shields.io/twitter/follow/guedou.svg?style=social)](https://twitter.com/intent/follow?screen_name=guedou)
 
 r2m2 is a [radare2](https://github.com/radare/radare2) plugin that aims at easing reversing new architectures by leveraging radare2 and [miasm2](https://github.com/cea-sec/mia) features. Its goal is to be as architecture independent as possible.
@@ -57,7 +57,7 @@ r2m2$ docker run --rm -it -e 'R2M2_ARCH=mips32l' guedou/r2m2 rasm2 -a r2m2 "addi
 0200a424
 ```
 
-If you associated a SSH key with your github account, you can try r2m2 on a free [Dply VM](https://dply.co/b/nHYke76B). The [installation script](examples/dply_cloud-init.sh) prepared the VM by installing Docker and pulling the r2m2 image.
+If you associated a SSH key with your github account, you can try r2m2 on a free [Dply VM](https://dply.co/b/GmWkkvVs). The [installation script](examples/dply_cloud-init.sh) prepared the VM by installing Docker and pulling the r2m2 image.
 
 
 ## Building r2m2

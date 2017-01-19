@@ -6,6 +6,3 @@
 # Install packages
 apt-get update
 apt-get install -y docker.io
-
-# Pull r2m2 Docker image
-docker pull guedou/r2m2
