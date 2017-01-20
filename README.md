@@ -12,6 +12,9 @@ It bridges the radare2 and miasm2 communities: radare2 being the graphical inter
 
 Currently, r2m2 is able to assemble, disassemble, split blocs, using miasm2,  and convert internal miasm2 expressions to radare2 ESIL.
 
+Interested? Watch the video!
+[![asciicast](https://asciinema.org/a/3x0i1ejw5x9s0ep9aghhm848c.png)](https://asciinema.org/a/3x0i1ejw5x9s0ep9aghhm848c)
+
 
 ## Demos
 
