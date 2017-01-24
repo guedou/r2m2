@@ -6,13 +6,13 @@
 <a href="https://dply.co/b/GmWkkvVs"><img src="https://dply.co/b.svg" height=20/></a>
 [![Twitter Follow](https://img.shields.io/twitter/follow/guedou.svg?style=social)](https://twitter.com/intent/follow?screen_name=guedou)
 
-r2m2 is a [radare2](https://github.com/radare/radare2) plugin that aims at easing reversing new architectures by leveraging radare2 and [miasm2](https://github.com/cea-sec/mia) features. Its goal is to be as architecture independent as possible.
+r2m2 is a [radare2](https://github.com/radare/radare2) plugin that aims at easing reversing new architectures by leveraging radare2 and [miasm2](https://github.com/cea-sec/miasm) features. Its goal is to be as architecture independent as possible.
 
 It bridges the radare2 and miasm2 communities: radare2 being the graphical interface of miasm2, and miasm2 simplifying the implementation of new architectures.
 
 Currently, r2m2 is able to assemble, disassemble, split blocs, using miasm2,  and convert internal miasm2 expressions to radare2 ESIL.
 
-Interested? Watch the video!
+Interested? Watch the video, or check the [presentation and design slides](https://guedou.github.io/).
 [![asciicast](https://asciinema.org/a/3x0i1ejw5x9s0ep9aghhm848c.png)](https://asciinema.org/a/3x0i1ejw5x9s0ep9aghhm848c)
 
 
