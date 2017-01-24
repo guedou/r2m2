@@ -205,6 +205,8 @@ def r2_anal_splitflow(analop, address, instruction, expression):
         # Retrieve, or guess, the condition operator
         if isinstance(aff.src.cond, ExprId):
             operator = R_ANAL_COND_EQ
+        elif isinstance(aff.src.cond, ExprSlice):
+            operator = None
         else:
             operator = aff.src.cond.op
 

@@ -77,3 +77,12 @@
   echo $result
   [[ $result == *",=<"* ]]
 }
+
+@test "ExpSlice in condition" {
+  # Build the binary
+  echo -ne "\x75\xdc\x81\x05" > binary
+  # Call r2
+  result=$(R2M2_ARCH=mips32l r2 -a r2m2 -e scr.color=0 -e asm.emu=true -qc 'pd 1' binary 2>&1)
+  echo $result
+  [[ $result != *"ExprSlice"* ]]
+}
