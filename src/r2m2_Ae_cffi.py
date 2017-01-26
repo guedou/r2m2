@@ -175,6 +175,9 @@ def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
         elif isinstance(expr, ExprId):
             r2_analop.type = R_ANAL_OP_TYPE_UJMP
 
+        elif isinstance(expr, ExprMem):
+            r2_analop.type = R_ANAL_OP_TYPE_MJMP
+
         else:
             print >> sys.stderr, "miasm_anal(): don't know what to do with: %s" % instr
 

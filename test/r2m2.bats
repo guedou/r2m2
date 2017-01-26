@@ -95,3 +95,12 @@
   echo $result
   [[ $result == *"r15=0x4"* ]]
 }
+
+@test "Emulate JMP with an address" {
+  # Create the binary from raw bytes
+  echo -ne '\xff\x24\x25\x03\x00\x00\x00\x00' > binary
+  # Call r2
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -qc 'e asm.emu=true; pd 1' binary 2>&1)
+  echo $result
+  [[ $result != *"miasm_anal()"* ]]
+} 
