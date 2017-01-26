@@ -13,6 +13,7 @@ from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, \
                                          ExprOp, ExprMem, ExprCompose, ExprSlice
 from miasm2.expression.simplifications import expr_simp
+from miasm2.core.asmbloc import asm_label
 
 from miasm_embedded_r2m2_Ae import ffi
 
@@ -249,6 +250,14 @@ def get_esil(analop, instruction):
             analop.esil.len = len(esil_string)
 
 
+def m2_filter_IRDst(ir_list):
+    """Filter IRDst from the expessions list"""
+    return [ ir for ir in ir_list if not (isinstance(ir, ExprAff) and \
+                                          isinstance(ir.dst, ExprId) and
+                                          ir.dst.name == "IRDst")
+           ]
+
+
 def m2instruction_to_r2esil(instruction):
     """Convert a miasm2 instruction to a radare2 ESIL"""
 
@@ -266,29 +275,34 @@ def m2instruction_to_r2esil(instruction):
            and i.dst.name == "IRDst":
             iir.remove(i)
 
-    if eiir:
-        print >> sys.stderr, "Don't know what to do with non-empty eiir:", eiir
+    # Convert IRs
+    result = list()
 
-    if iir is None or iir == []:
-        return
+    if iir:
+        result += [m2expr_to_r2esil(ir) for ir in m2_filter_IRDst(iir)]
 
-    else:
-        result = [m2expr_to_r2esil(i) for i in iir]
+    for irbloc in eiir:
+        for ir_list in irbloc.irs:
+            result += [m2expr_to_r2esil(ir) for ir in m2_filter_IRDst(ir_list)]
 
-        if not len(result):
-            return None
+    if not len(result):
+        return None
 
-        return ",".join(result)
+    return ",".join(result)
 
 
 def m2expr_to_r2esil(iir):
     """Convert a miasm2 expression to a radare2 ESIL"""
 
     if isinstance(iir, ExprId):
-        if not isinstance(iir.name, str):
-            # Get the miasm2 asm_label offset
-            return hex(iir.name.offset)
-        return iir.name.lower()
+        # Get the miasm2 asm_label offset
+        if isinstance(iir.name, asm_label):
+            if isinstance(iir.name.offset, (int, long)):
+                return hex(iir.name.offset)
+            else:
+                return str(iir.name.offset)
+        else:
+            return iir.name.lower()
 
     if isinstance(iir, ExprInt):
         return hex(iir.arg)

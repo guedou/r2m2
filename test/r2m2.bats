@@ -86,3 +86,12 @@
   echo $result
   [[ $result != *"ExprSlice"* ]]
 }
+
+@test "Emulate SHL" {
+  # Create the binary from raw bytes
+  echo -ne "\x49\xd3\xe7" > binary
+  # Call r2
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -qc 'e asm.emu=true; ae 1,r15,=,2,cl,=; pd 1' binary)
+  echo $result
+  [[ $result == *"r15=0x4"* ]]
+}
