@@ -329,7 +329,7 @@ def m2expr_to_r2esil(iir):
             arg_0 = m2expr_to_r2esil(iir.args[0])
             return "%s,%s,%s" % (arg_1, arg_0, iir.op)
         else:
-            return "0,%s,%s" % (m2expr_to_r2esil(iir.args[0]), iir.op)
+            return "%s,0,%s" % (m2expr_to_r2esil(iir.args[0]), iir.op)
 
     elif isinstance(iir, ExprCompose):
 
