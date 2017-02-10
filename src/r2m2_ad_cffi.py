@@ -1,4 +1,4 @@
-# Copyright (C) 2016 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
 
 """
 r2m2 plugin that uses miasm2 as a radare2 disassembly and assembly backend
@@ -9,6 +9,8 @@ import os
 import sys
 
 from miasm2.analysis.machine import Machine
+from miasm2.core.asmbloc import asm_label, asm_symbol_pool
+from miasm2.expression.expression import ExprId, ExprInt
 
 from miasm_embedded_r2m2_ad import ffi
 
@@ -32,7 +34,7 @@ def miasm_machine():
 
 
 @ffi.def_extern()
-def miasm_dis(r2_buffer, r2_length, r2_op):
+def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
     """Disassemble an instruction using miasm."""
 
     # Cast radare2 variables
@@ -51,6 +53,31 @@ def miasm_dis(r2_buffer, r2_length, r2_op):
     try:
         mode = machine.dis_engine().attrib
         instr = machine.mn().dis(opcode, mode)
+        instr.offset = r2_address
+        if instr.dstflow():
+
+            # Remember ExprInt arguments sizes
+            args_size = list()
+            for i in range(len(instr.args)):
+                if isinstance(instr.args[i], ExprInt):
+                    args_size.append(instr.args[i].size)
+                else:
+                    args_size.append(None)
+
+            # Adjust arguments values using the instruction offset
+            instr.dstflow2label(asm_symbol_pool())
+
+            # Convert label back to ExprInt
+            for i in range(len(instr.args)):
+                if args_size[i] is None:
+                    continue
+                if isinstance(instr.args[i], ExprId) and \
+                   isinstance(instr.args[i].name, asm_label):
+                    addr = str(instr.args[i].name)
+                    addr = int(addr.split(":")[1], 16)
+                    instr.args[i] = ExprInt(addr, args_size[i])
+
+
         dis_str = str(instr)
         dis_len = instr.l
     except:
@@ -73,7 +100,7 @@ def miasm_dis(r2_buffer, r2_length, r2_op):
 
 
 @ffi.def_extern()
-def miasm_asm(r2_buffer, r2_op):
+def miasm_asm(r2_op, r2_address, r2_buffer):
     """Assemble an instruction using miasm."""
 
     # Cast radare2 variables
@@ -95,6 +122,10 @@ def miasm_asm(r2_buffer, r2_op):
     # Assemble and return all possible candidates
     mode = machine.dis_engine().attrib
     instr = mn.fromstring(mn_str, mode)
+    instr.offset = r2_address
+    if instr.offset and instr.dstflow():
+        # Adjust arguments values using the instruction offset
+        instr.fixDstOffset()
     asm_instr = [i for i in mn.asm(instr)][0]
 
     # Assembled instructions in hexadecimal

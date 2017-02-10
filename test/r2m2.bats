@@ -104,3 +104,32 @@
   echo $result
   [[ $result != *"miasm_anal()"* ]]
 } 
+
+@test "Assemble & disassemble JZ with offsets" {
+  export R2M2_ARCH=x86_32
+
+  # Assemble JZ without and with an offset
+  result_1=$(rasm2 -a r2m2 "JZ 0xA")
+  echo $result_1
+  result_2=$(rasm2 -a r2m2 -o 0x1000 "JZ 0x100A")
+  echo $result_2
+  [ "$result_1" == "7408" ]
+  [ "$result_1" == "$result_2" ]
+
+  # Disassemble with an offset
+  result=$(echo $result_1 |rasm2 -a r2m2 -d -o 0x2800 -; echo)
+  echo $result
+  [ "$result" == "JZ         0x280A" ]
+}
+
+@test "Check offset computation in call" {
+  export R2M2_ARCH=armb
+
+  # Assemble an ARM call
+  rasm2 -a r2m2 "BL 0x8" -B > binary
+
+  # Call r2
+  r2 -a r2m2 -m 0x2800 -qc 'af+ 0x2808 1 function_ut; pd 1' binary
+  echo $result
+  [[ $result != *"BL         function_ut"* ]]
+}

@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Guillaume Valadon <guillaume@valadon.net>
+// Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
 
 // r2m2 plugin that uses miasm2 as a radare2 disassembly and assembly backend
 
@@ -9,18 +9,18 @@
 #include "r2m2_ad.h"
 
 
-static int disassemble (RAsm *unused, RAsmOp *rop, const unsigned char *data, int len) {
+static int disassemble (RAsm *rasm, RAsmOp *rop, const unsigned char *data, int len) {
     // Disassemble an instruction using miasm
     rop->size = 0;
-    miasm_dis (data, len, (RAsmOp_r2m2*)rop);
+    miasm_dis ((RAsmOp_r2m2*)rop, rasm->pc, data, len);
     return rop->size;
 }
 
 
-static int assemble (RAsm *unused, RAsmOp *rop, const char *data) {
+static int assemble (RAsm *rasm, RAsmOp *rop, const char *data) {
     // Assemble an instruction using miasm
     rop->size = 0;
-    miasm_asm (data, (RAsmOp_r2m2*)rop);
+    miasm_asm ((RAsmOp_r2m2*)rop, rasm->pc, data);
     return rop->size;
 }
 
