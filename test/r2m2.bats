@@ -69,13 +69,14 @@
   [[ $result == *"zf,?{"* ]]
 }
 
-@test "Emulate JMP" {
+@test "Emulate JMP with an offset" {
   # Assemble CALL
   rasm2 -B 'JMP 0x28' > binary
   # Call r2
-  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'pd 2' binary)
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'pd 1' binary)
   echo $result
   [[ $result == *",=<"* ]]
+  [[ $result == *"0x100000028"* ]]
 }
 
 @test "ExpSlice in condition" {
@@ -120,6 +121,10 @@
   result=$(echo $result_1 |rasm2 -a r2m2 -d -o 0x2800 -; echo)
   echo $result
   [ "$result" == "JZ         0x280A" ]
+
+  # Call r2
+  result=$(r2 -a r2m2 -e asm.emu=true -m 0x2800 -qc 'pd 1' binary)
+  [[ $result != *"JMP        0x280A"* ]]
 }
 
 @test "Check offset computation in call" {
@@ -129,7 +134,7 @@
   rasm2 -a r2m2 "BL 0x8" -B > binary
 
   # Call r2
-  r2 -a r2m2 -m 0x2800 -qc 'af+ 0x2808 1 function_ut; pd 1' binary
-  echo $result
+  result=$(r2 -a r2m2 -m 0x2800 -qc 'af+ 0x2808 1 function_ut; pd 1' -e asm.emu=true binary)
   [[ $result != *"BL         function_ut"* ]]
+  [[ $result != *"pc\=0x2808"* ]]
 }

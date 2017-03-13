@@ -1,4 +1,4 @@
-# Copyright (C) 2016 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
 
 """
 r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
@@ -13,7 +13,7 @@ from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, \
                                          ExprOp, ExprMem, ExprCompose, ExprSlice
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmblock import AsmLabel
+from miasm2.core.asmblock import AsmLabel, AsmSymbolPool
 
 from miasm_embedded_r2m2_Ae import ffi
 
@@ -108,7 +108,7 @@ def miasm_get_reg_profile():
 
 
 @ffi.def_extern()
-def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
+def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     """Define an instruction behavior using miasm."""
 
     # Cast radare2 variables
@@ -124,6 +124,10 @@ def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
         machine = miasm_machine()
         mode = machine.dis_engine().attrib
         instr = machine.mn().dis(opcode, mode)
+        instr.offset = r2_address
+        if instr.dstflow():
+            # Adjust arguments values using the instruction offset
+            instr.dstflow2label(AsmSymbolPool())
         dis_len = instr.l
     except:
         # Can't do anything with an invalid instruction
@@ -136,7 +140,6 @@ def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
     r2_analop.size = dis_len
     r2_analop.type = R_ANAL_OP_TYPE_UNK
     r2_analop.eob = 0   # End Of Block
-
 
     # Convert miasm expressions to ESIL
     get_esil(r2_analop, instr)
@@ -161,19 +164,24 @@ def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
         expr = instr.getdstflow(None)[0]
 
         if instr.is_subcall():
-            r2_anal_subcall(r2_analop, r2_addr, expr)
+            r2_anal_subcall(r2_analop, expr)
             return
 
         if r2_analop.type == R_ANAL_OP_TYPE_UNK and instr.splitflow():
-            r2_anal_splitflow(r2_analop, r2_addr, instr, expr)
+            r2_anal_splitflow(r2_analop, r2_address, instr, expr)
             return
 
         if isinstance(expr, ExprInt):
             r2_analop.type = R_ANAL_OP_TYPE_JMP
-            r2_analop.jump = (r2_addr + int(expr.arg)) & 0xFFFFFFFFFFFFFFFF
+            r2_analop.jump = int(expr.arg) & 0xFFFFFFFFFFFFFFFF
 
         elif isinstance(expr, ExprId):
-            r2_analop.type = R_ANAL_OP_TYPE_UJMP
+            if isinstance(expr.name, AsmLabel):
+                # Get the miasm2 AsmLabel address
+                r2_analop.type = R_ANAL_OP_TYPE_JMP
+                r2_analop.jump = label2address(expr) & 0xFFFFFFFFFFFFFFFF
+            else:
+                r2_analop.type = R_ANAL_OP_TYPE_UJMP
 
         elif isinstance(expr, ExprMem):
             r2_analop.type = R_ANAL_OP_TYPE_MJMP
@@ -184,7 +192,6 @@ def miasm_anal(r2_op, r2_addr, r2_buffer, r2_length):
 
 def r2_anal_splitflow(analop, address, instruction, expression):
     """Handle splitflow analysis"""
-
 
     # Get the miasm machine and IR objects
     machine = miasm_machine()
@@ -222,19 +229,28 @@ def r2_anal_splitflow(analop, address, instruction, expression):
         # Fill the RAnalOp structure
         analop.type = R_ANAL_OP_TYPE_CJMP
         analop.cond = r2cond
-        analop.jump = (address + int(expression.arg)) & 0xFFFFFFFFFFFFFFFF
+        if isinstance(expression, ExprId) and isinstance(expression.name, AsmLabel):
+            # Get the miasm2 AsmLabel address
+            jmp_address = label2address(expression)
+        else:
+            jmp_address = int(expression.arg)
+        analop.jump = jmp_address & 0xFFFFFFFFFFFFFFFF
         analop.fail = (address + instruction.l) & 0xFFFFFFFFFFFFFFFF
 
     else:
         print >> sys.stderr, "r2_anal_splitflow(): don't know what to do with: %s" % instruction
 
 
-def r2_anal_subcall(analop, address, expression):
+def r2_anal_subcall(analop, expression):
     """Handle subcall analysis"""
 
-    if isinstance(expression, ExprInt):
+    if isinstance(expression, ExprId) and isinstance(expression.name, AsmLabel):
         analop.type = R_ANAL_OP_TYPE_CALL
-        analop.jump = (address + int(expression.arg)) & 0xFFFFFFFFFFFFFFFF
+        # Get the miasm2 AsmLabel address
+        analop.jump = label2address(expression) & 0xFFFFFFFFFFFFFFFF
+    elif isinstance(expression, ExprInt):
+        analop.type = R_ANAL_OP_TYPE_CALL
+        analop.jump = int(expression.arg) & 0xFFFFFFFFFFFFFFFF
     else:
         analop.type = R_ANAL_OP_TYPE_UCALL
 
@@ -255,6 +271,7 @@ def get_esil(analop, instruction):
 
 def m2_filter_IRDst(ir_list):
     """Filter IRDst from the expessions list"""
+
     return [ ir for ir in ir_list if not (isinstance(ir, ExprAff) and \
                                           isinstance(ir.dst, ExprId) and
                                           ir.dst.name == "IRDst")
@@ -294,16 +311,22 @@ def m2instruction_to_r2esil(instruction):
     return ",".join(result)
 
 
+def label2address(expr):
+    """Convert miasm2 label to an integer"""
+
+    if isinstance(expr.name.offset, (int, long)):
+        return expr.name.offset
+    else:
+        return int(expr.name.offset, 16)
+
+
 def m2expr_to_r2esil(iir):
     """Convert a miasm2 expression to a radare2 ESIL"""
 
     if isinstance(iir, ExprId):
-        # Get the miasm2 asm_label offset
         if isinstance(iir.name, AsmLabel):
-            if isinstance(iir.name.offset, (int, long)):
-                return hex(iir.name.offset)
-            else:
-                return str(iir.name.offset)
+            # Get the miasm2 AsmLabel address
+            return hex(label2address(iir))
         else:
             return iir.name.lower()
 
