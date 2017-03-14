@@ -8,7 +8,8 @@ RUN useradd r2m2 --create-home
 
 # Install packages
 RUN set -x && \
-    PACKAGES="radare2 git python2-jinja python2-cffi make gcc pkg-config bash-bats libunistring" && \
+    PACKAGES="radare2 git python2-jinja python2-cffi make gcc pkg-config " && \
+    PACKAGES+="bash-bats libunistring gawk grep" && \
     pacman -Sy && pacman -S --noconfirm archlinux-keyring && \
     pacman -S --noconfirm $PACKAGES && \
     ln -s /usr/bin/python2 /usr/bin/python
