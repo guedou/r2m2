@@ -13,7 +13,7 @@ from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, \
                                          ExprOp, ExprMem, ExprCompose, ExprSlice
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmblock import AsmLabel
 
 from miasm_embedded_r2m2_Ae import ffi
 
@@ -299,7 +299,7 @@ def m2expr_to_r2esil(iir):
 
     if isinstance(iir, ExprId):
         # Get the miasm2 asm_label offset
-        if isinstance(iir.name, asm_label):
+        if isinstance(iir.name, AsmLabel):
             if isinstance(iir.name.offset, (int, long)):
                 return hex(iir.name.offset)
             else:

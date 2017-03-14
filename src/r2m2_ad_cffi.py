@@ -9,7 +9,7 @@ import os
 import sys
 
 from miasm2.analysis.machine import Machine
-from miasm2.core.asmbloc import asm_label, asm_symbol_pool
+from miasm2.core.asmblock import AsmLabel, AsmSymbolPool
 from miasm2.expression.expression import ExprId, ExprInt
 
 from miasm_embedded_r2m2_ad import ffi
@@ -65,14 +65,14 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
                     args_size.append(None)
 
             # Adjust arguments values using the instruction offset
-            instr.dstflow2label(asm_symbol_pool())
+            instr.dstflow2label(AsmSymbolPool())
 
             # Convert label back to ExprInt
             for i in range(len(instr.args)):
                 if args_size[i] is None:
                     continue
                 if isinstance(instr.args[i], ExprId) and \
-                   isinstance(instr.args[i].name, asm_label):
+                   isinstance(instr.args[i].name, AsmLabel):
                     addr = str(instr.args[i].name)
                     addr = int(addr.split(":")[1], 16)
                     instr.args[i] = ExprInt(addr, args_size[i])
