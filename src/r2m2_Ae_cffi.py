@@ -102,7 +102,7 @@ def miasm_get_reg_profile():
                                                   reg_expr.size, reg_offset)
 
         # Compute register offset
-        reg_offset += reg_expr.size / 8
+        reg_offset += reg_expr.size if reg_expr.size < 8 else reg_expr.size / 8
 
     return alloc_string(reg_profile)
 
@@ -303,7 +303,8 @@ def m2instruction_to_r2esil(instruction):
 
     for irbloc in eiir:
         for ir_list in irbloc.irs:
-            result += [m2expr_to_r2esil(ir) for ir in m2_filter_IRDst(ir_list)]
+            aff = (ExprAff(dst, src) for dst, src in ir_list.iteritems())
+            result += (m2expr_to_r2esil(ir) for ir in m2_filter_IRDst(aff))
 
     if not len(result):
         return None
@@ -351,6 +352,9 @@ def m2expr_to_r2esil(iir):
             arg_1 = m2expr_to_r2esil(iir.args[1])
             arg_0 = m2expr_to_r2esil(iir.args[0])
             return "%s,%s,%s" % (arg_1, arg_0, iir.op)
+        elif iir.op == "parity":
+            arg = m2expr_to_r2esil(iir.args[0])
+            return "%s,1,&,?{,0,}{,1,}" % arg
         else:
             return "%s,0,%s" % (m2expr_to_r2esil(iir.args[0]), iir.op)
 
