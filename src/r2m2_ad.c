@@ -3,6 +3,7 @@
 // r2m2 plugin that uses miasm2 as a radare2 disassembly and assembly backend
 
 
+#include <dlfcn.h>
 #include <r_asm.h>
 #include <r_lib.h>
 #include "r2m2.h"
@@ -25,6 +26,22 @@ static int assemble (RAsm *rasm, RAsmOp *rop, const char *data) {
 }
 
 
+#ifdef linux
+static int init(void *user) {
+  // Load the libpython2.7 dynamic library
+  void *libpython = dlopen ("libpython2.7.so", RTLD_LAZY|RTLD_GLOBAL);
+
+  if (!libpython) {
+    char* error = dlerror();
+    fprintf (stderr, "r2m2_ad.init: ERROR - %s\n", error);
+    return false;
+  }
+
+  return true;
+}
+#endif
+
+
 RAsmPlugin r_asm_plugin_r2m2 = {
     .name = "r2m2",
     .arch = "r2m2",
@@ -32,7 +49,10 @@ RAsmPlugin r_asm_plugin_r2m2 = {
     .bits = R2M2_ARCH_BITS, // GV: seems fishy !
     .desc = "miasm2 backend",
     .disassemble = disassemble,
-    .assemble = assemble
+    .assemble = assemble,
+#ifdef linux
+    .init = init,
+#endif
 };
 
 

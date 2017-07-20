@@ -1,7 +1,9 @@
-// Copyright (C) 2016 Guillaume Valadon <guillaume@valadon.net>
+// Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
 
 // r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
 
+
+#include <dlfcn.h>
 #include <r_asm.h>
 #include <r_lib.h>
 #include "r2m2.h"
@@ -24,6 +26,22 @@ static int analyze (RAnal *unused, RAnalOp *rop, ut64 addr, const ut8 *data, int
 
     return rop->size;
 }
+
+
+#ifdef linux
+static int init(void *user) {
+  // Load the libpython2.7 dynamic library
+  void *libpython = dlopen ("libpython2.7.so", RTLD_LAZY|RTLD_GLOBAL);
+
+  if (!libpython) {
+    char* error = dlerror();
+    fprintf (stderr, "r2m2_Ae.init: ERROR - %s\n", error);
+    return false;
+  }
+
+  return true;
+}
+#endif
 
 
 static int set_reg_profile (RAnal *anal) {
@@ -56,6 +74,9 @@ struct r_anal_plugin_t r_anal_plugin_r2m2 = {
     .bits = R2M2_ARCH_BITS, // GV: seems fishy
     .desc = "miasm2 backend",
     .op = analyze,
+#ifdef linux
+    .init = init,
+#endif
 
     .set_reg_profile = set_reg_profile,
 
