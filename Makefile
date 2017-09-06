@@ -3,7 +3,7 @@
 # Retrieve radare2 related information
 R2_PLUGIN_PATH=$(HOME)/.local/share/radare2/plugins/
 R2_INCLUDES_PATH=$(shell r2 -hh|grep INCDIR|awk '{print $$2}')
-R2_CFLAGS=-g -fPIC $(shell pkg-config --cflags r_asm)
+R2_CFLAGS=-g -fPIC $(shell pkg-config --cflags r_asm r_anal)
 
 # Retrieve Python related information
 PYTHON2_CFLAGS=$(shell python2-config --cflags)
@@ -11,7 +11,7 @@ PYTHON2_LDFLAGS=$(shell python2-config --ldflags)
 
 # Prepare r2m2 specific variables
 SO_EXT=$(shell uname|grep -q Darwin && echo dylib || echo so)
-R2M2_LDFLAGS=-shared $(PYTHON2_LDFLAGS) $(shell pkg-config --libs r_asm)
+R2M2_LDFLAGS=-shared $(PYTHON2_LDFLAGS) $(shell pkg-config --libs r_asm r_anal)
 R2M2_LIBS=r2m2_ad.$(SO_EXT) r2m2_Ae.$(SO_EXT)
 
 # OS detection

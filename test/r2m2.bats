@@ -131,10 +131,31 @@
   export R2M2_ARCH=armb
 
   # Assemble an ARM call
-  rasm2 -a r2m2 "BL 0x8" -B > binary
+  rasm2 -a r2m2 -B "BL 0x8" > binary
 
   # Call r2
   result=$(r2 -a r2m2 -m 0x2800 -qc 'af+ 0x2808 function_ut; pd 1' -e asm.emu=true binary)
   [[ $result == *"function_ut"* ]]
   [[ $result == *"pc=0x2808"* ]]
+}
+
+@test "Check calling convention" {
+  export PATH=radare2/shlr/sdb/:$PATH
+  if ! which sdb > /dev/null
+  then
+    skip "sdb command not found"
+  fi
+
+  export R2M2_ARCH=armb
+
+  # Compile and test the SDB
+  cat test/r2m2-cc.txt |sdb r2m2-cc.sdb -
+  result=$(sdb r2m2-cc.sdb cc.r2m2.name)
+  [[ $result == *"r2m2"* ]]
+
+  # Call r2
+  result=$(r2 -a r2m2 -qc 'af+ 0x20 strlen; e io.cache=true; s 0; wz Hello; s 8 ; wa MOV R1,0; s 12; wa BL 0x20 ; e asm.emu=true ; pd 2 @ 8' -)
+  echo $result
+  [[ $result == *"strlen"* ]]
+  [[ $result == *'"Hello"'* ]]
 }

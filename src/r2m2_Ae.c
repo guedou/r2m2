@@ -11,7 +11,10 @@
 #include "r2m2_Ae.h"
 
 
-static int analyze (RAnal *unused, RAnalOp *rop, ut64 addr, const ut8 *data, int len) {
+#define R2M2_CC_SDB_PATH "./r2m2-cc.sdb"
+
+
+static int analyze (RAnal *ranal, RAnalOp *rop, ut64 addr, const ut8 *data, int len) {
      // If the size is set, the instruction was already processed
      // Note: this is a trick to enhance performances, as radare2 calls analyze()
      //       several times.
@@ -24,6 +27,18 @@ static int analyze (RAnal *unused, RAnalOp *rop, ut64 addr, const ut8 *data, int
     rop->type = R_ANAL_OP_TYPE_UNK;
 
     miasm_anal ((RAnalOp_r2m2*)rop, addr, data, len);
+
+    // Load the calling convention database
+    struct stat cc_db_stat;
+    int cc_db_exists = stat (R2M2_CC_SDB_PATH, &cc_db_stat);
+
+    if (r_anal_cc_exist (ranal, "r2m2") == 0 && cc_db_exists == 0) {
+        sdb_open (ranal->sdb_cc, R2M2_CC_SDB_PATH);
+
+        if (ranal->sdb_cc->db.size == 0) {
+	    eprintf("analyze(): loading the calling convention database failed !\n");
+        }
+    }
 
     return rop->size;
 }
