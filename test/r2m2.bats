@@ -134,7 +134,7 @@
   rasm2 -a r2m2 "BL 0x8" -B > binary
 
   # Call r2
-  result=$(r2 -a r2m2 -m 0x2800 -qc 'af+ 0x2808 1 function_ut; pd 1' -e asm.emu=true binary)
-  [[ $result != *"BL         function_ut"* ]]
-  [[ $result != *"pc\=0x2808"* ]]
+  result=$(r2 -a r2m2 -m 0x2800 -qc 'af+ 0x2808 function_ut; pd 1' -e asm.emu=true binary)
+  [[ $result == *"function_ut"* ]]
+  [[ $result == *"pc=0x2808"* ]]
 }
