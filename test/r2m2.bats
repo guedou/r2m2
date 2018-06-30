@@ -70,7 +70,7 @@
 }
 
 @test "Emulate JMP with an offset" {
-  # Assemble CALL
+  # Assemble JMP
   rasm2 -B 'JMP 0x28' > binary
   # Call r2
   result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'pd 1' binary)

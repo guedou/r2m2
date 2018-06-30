@@ -7,12 +7,11 @@ r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
 
 import os
 import sys
-import importlib
 
 from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose, ExprSlice
+from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose, ExprSlice, ExprLoc
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmblock import AsmLabel, AsmSymbolPool
+from miasm2.core.asmblock import AsmSymbolPool
 
 from miasm_embedded_r2m2_Ae import ffi
 
@@ -116,6 +115,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     opcode = ffi.unpack(opcode, r2_length)
 
     # Disassemble the opcode
+    symbol_pool = AsmSymbolPool()
     try:
         machine = miasm_machine()
         mode = machine.dis_engine().attrib
@@ -123,7 +123,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         instr.offset = r2_address
         if instr.dstflow():
             # Adjust arguments values using the instruction offset
-            instr.dstflow2label(AsmSymbolPool())
+            instr.dstflow2label(symbol_pool)
         dis_len = instr.l
     except:
         # Can't do anything with an invalid instruction
@@ -137,7 +137,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     r2_analop.eob = 0   # End Of Block
 
     # Convert miasm expressions to ESIL
-    get_esil(r2_analop, instr)
+    get_esil(r2_analop, instr, symbol_pool)
 
     ### Architecture agnostic analysis
 
@@ -157,11 +157,11 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         expr = instr.getdstflow(None)[0]
 
         if instr.is_subcall():
-            r2_anal_subcall(r2_analop, expr)
+            r2_anal_subcall(r2_analop, expr, symbol_pool)
             return
 
         if r2_analop.type == R_ANAL_OP_TYPE_UNK and instr.splitflow():
-            r2_anal_splitflow(r2_analop, r2_address, instr, expr)
+            r2_anal_splitflow(r2_analop, r2_address, instr, expr, symbol_pool)
             return
 
         if isinstance(expr, ExprInt):
@@ -169,12 +169,12 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
             r2_analop.jump = int(expr.arg) & 0xFFFFFFFFFFFFFFFF
 
         elif isinstance(expr, ExprId):
-            if isinstance(expr.name, AsmLabel):
-                # Get the miasm2 AsmLabel address
-                r2_analop.type = R_ANAL_OP_TYPE_JMP
-                r2_analop.jump = label2address(expr) & 0xFFFFFFFFFFFFFFFF
-            else:
-                r2_analop.type = R_ANAL_OP_TYPE_UJMP
+            r2_analop.type = R_ANAL_OP_TYPE_UJMP
+
+        elif isinstance(expr, ExprLoc):
+            addr = symbol_pool.loc_key_to_offset(expr.loc_key)
+            r2_analop.type = R_ANAL_OP_TYPE_JMP
+            r2_analop.jump = addr & 0xFFFFFFFFFFFFFFFF
 
         elif isinstance(expr, ExprMem):
             r2_analop.type = R_ANAL_OP_TYPE_MJMP
@@ -183,7 +183,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
             print >> sys.stderr, "miasm_anal(): don't know what to do with: %s" % instr
 
 
-def r2_anal_splitflow(analop, address, instruction, expression):
+def r2_anal_splitflow(analop, address, instruction, expression, symbol_pool):
     """Handle splitflow analysis"""
 
     # Get the miasm machine and IR objects
@@ -222,9 +222,8 @@ def r2_anal_splitflow(analop, address, instruction, expression):
         # Fill the RAnalOp structure
         analop.type = R_ANAL_OP_TYPE_CJMP
         analop.cond = r2cond
-        if isinstance(expression, ExprId) and isinstance(expression.name, AsmLabel):
-            # Get the miasm2 AsmLabel address
-            jmp_address = label2address(expression)
+        if isinstance(expression, ExprLoc):
+            jmp_address = symbol_pool.loc_key_to_offset(expression.loc_key)
         else:
             jmp_address = int(expression.arg)
         analop.jump = jmp_address & 0xFFFFFFFFFFFFFFFF
@@ -234,13 +233,12 @@ def r2_anal_splitflow(analop, address, instruction, expression):
         print >> sys.stderr, "r2_anal_splitflow(): don't know what to do with: %s" % instruction
 
 
-def r2_anal_subcall(analop, expression):
+def r2_anal_subcall(analop, expression, symbol_pool):
     """Handle subcall analysis"""
 
-    if isinstance(expression, ExprId) and isinstance(expression.name, AsmLabel):
+    if isinstance(expression, ExprLoc):
         analop.type = R_ANAL_OP_TYPE_CALL
-        # Get the miasm2 AsmLabel address
-        analop.jump = label2address(expression) & 0xFFFFFFFFFFFFFFFF
+        analop.jump = symbol_pool.loc_key_to_offset(expression.loc_key)
     elif isinstance(expression, ExprInt):
         analop.type = R_ANAL_OP_TYPE_CALL
         analop.jump = int(expression.arg) & 0xFFFFFFFFFFFFFFFF
@@ -248,10 +246,10 @@ def r2_anal_subcall(analop, expression):
         analop.type = R_ANAL_OP_TYPE_UCALL
 
 
-def get_esil(analop, instruction):
+def get_esil(analop, instruction, symbol_pool):
     """Fill the r2 analop structure"""
 
-    esil_string = m2instruction_to_r2esil(instruction)
+    esil_string = m2instruction_to_r2esil(instruction, symbol_pool)
     if esil_string:
         # Write the ESIL string to the buffer or allocate a string
         if len(esil_string) < 64:
@@ -268,7 +266,7 @@ def m2_filter_IRDst(ir_list):
     return [ir for ir in ir_list if not (isinstance(ir, ExprAff) and isinstance(ir.dst, ExprId) and ir.dst.name == "IRDst")]
 
 
-def m2instruction_to_r2esil(instruction):
+def m2instruction_to_r2esil(instruction, symbol_pool):
     """Convert a miasm2 instruction to a radare2 ESIL"""
 
     # Get the IR
@@ -288,12 +286,12 @@ def m2instruction_to_r2esil(instruction):
     result = list()
 
     if iir:
-        result += [m2expr_to_r2esil(ir) for ir in m2_filter_IRDst(iir)]
+        result += [m2expr_to_r2esil(ir, symbol_pool) for ir in m2_filter_IRDst(iir)]
 
     for irbloc in eiir:
         for ir_list in irbloc.irs:
             aff = (ExprAff(dst, src) for dst, src in ir_list.iteritems())
-            result += (m2expr_to_r2esil(ir) for ir in m2_filter_IRDst(aff))
+            result += (m2expr_to_r2esil(ir, symbol_pool) for ir in m2_filter_IRDst(aff))
 
     if not len(result):
         return None
@@ -301,51 +299,41 @@ def m2instruction_to_r2esil(instruction):
     return ",".join(result)
 
 
-def label2address(expr):
-    """Convert miasm2 label to an integer"""
-
-    if isinstance(expr.name.offset, (int, long)):
-        return expr.name.offset
-    else:
-        return int(expr.name.offset, 16)
-
-
-def m2expr_to_r2esil(iir):
+def m2expr_to_r2esil(iir, symbol_pool):
     """Convert a miasm2 expression to a radare2 ESIL"""
 
     if isinstance(iir, ExprId):
-        if isinstance(iir.name, AsmLabel):
-            # Get the miasm2 AsmLabel address
-            return hex(label2address(iir))
-        else:
-            return iir.name.lower()
+        return iir.name.lower()
+
+    if isinstance(iir, ExprLoc):
+        return symbol_pool.loc_key_to_offset(iir.loc_key)
 
     if isinstance(iir, ExprInt):
         return hex(iir.arg)
 
     if isinstance(iir, ExprMem):
-        ret = "%s,[]" % m2expr_to_r2esil(iir.arg)
+        ret = "%s,[]" % m2expr_to_r2esil(iir.arg, symbol_pool)
         return ret.lower()
 
     elif isinstance(iir, ExprAff):
         if not isinstance(iir.dst, ExprMem):
-            esil_dst = m2expr_to_r2esil(iir.dst)
-            return "%s,%s,=" % (m2expr_to_r2esil(iir.src), esil_dst)
+            esil_dst = m2expr_to_r2esil(iir.dst, symbol_pool)
+            return "%s,%s,=" % (m2expr_to_r2esil(iir.src, symbol_pool), esil_dst)
         else:
-            esrc = m2expr_to_r2esil(iir.src)
-            edst = m2expr_to_r2esil(iir.dst.arg)
+            esrc = m2expr_to_r2esil(iir.src, symbol_pool)
+            edst = m2expr_to_r2esil(iir.dst.arg, symbol_pool)
             return "%s,%s,=[]" % (esrc, edst)
 
     elif isinstance(iir, ExprOp):
         if len(iir.args) == 2:
-            arg_1 = m2expr_to_r2esil(iir.args[1])
-            arg_0 = m2expr_to_r2esil(iir.args[0])
+            arg_1 = m2expr_to_r2esil(iir.args[1], symbol_pool)
+            arg_0 = m2expr_to_r2esil(iir.args[0], symbol_pool)
             return "%s,%s,%s" % (arg_1, arg_0, iir.op)
         elif iir.op == "parity":
-            arg = m2expr_to_r2esil(iir.args[0])
+            arg = m2expr_to_r2esil(iir.args[0], symbol_pool)
             return "%s,1,&,?{,0,}{,1,}" % arg
         else:
-            return "%s,0,%s" % (m2expr_to_r2esil(iir.args[0]), iir.op)
+            return "%s,0,%s" % (m2expr_to_r2esil(iir.args[0], symbol_pool), iir.op)
 
     elif isinstance(iir, ExprCompose):
 
@@ -353,7 +341,7 @@ def m2expr_to_r2esil(iir):
         for start, expr in iir.iter_args():
             stop = start + expr.size
             mask = (2**stop - 1) - (2**start - 1)
-            esil_strings.append("%s,%s,&" % (m2expr_to_r2esil(expr), hex(mask)))
+            esil_strings.append("%s,%s,&" % (m2expr_to_r2esil(expr, symbol_pool), hex(mask)))
 
         l = esil_strings
         if len(l) == 2:
@@ -367,7 +355,7 @@ def m2expr_to_r2esil(iir):
     elif isinstance(iir, ExprSlice):
 
         mask = (2**iir.stop - 1) - (2**iir.start - 1)
-        return "%s,%s,&" % (m2expr_to_r2esil(iir.arg), hex(mask))
+        return "%s,%s,&" % (m2expr_to_r2esil(iir.arg, symbol_pool), hex(mask))
 
     elif isinstance(iir, ExprCond):
 
@@ -382,23 +370,23 @@ def m2expr_to_r2esil(iir):
                 else:
                     tmp_src = iir.src2
             else:
-                tmp = m2expr_to_r2esil(iir.cond)
+                tmp = m2expr_to_r2esil(iir.cond, symbol_pool)
                 esil_string = "%s,?{,%s,},?{,%s,}" % (tmp, iir.src1, iir.src2)
                 return esil_string
 
-            return m2expr_to_r2esil(tmp_src)
+            return m2expr_to_r2esil(tmp_src, symbol_pool)
 
         elif isinstance(iir.cond, ExprOp) or isinstance(iir.cond, ExprId) or isinstance(iir.cond, ExprCond):
-            condition = m2expr_to_r2esil(iir.cond)
-            if_clause = m2expr_to_r2esil(iir.src1)
-            then_clause = m2expr_to_r2esil(iir.src2)
+            condition = m2expr_to_r2esil(iir.cond, symbol_pool)
+            if_clause = m2expr_to_r2esil(iir.src1, symbol_pool)
+            then_clause = m2expr_to_r2esil(iir.src2, symbol_pool)
             return "%s,?{,%s,}{,%s,}" % (condition, if_clause, then_clause)
 
         elif isinstance(iir.cond, ExprInt):
             if int(iir.cond.arg):
-                return m2expr_to_r2esil(iir.src1)
+                return m2expr_to_r2esil(iir.src1, symbol_pool)
             else:
-                return m2expr_to_r2esil(iir.src2)
+                return m2expr_to_r2esil(iir.src2, symbol_pool)
 
         return "TODO_Cond"  # GV: use a r2m2 exception ?
 
