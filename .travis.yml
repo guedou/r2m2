@@ -18,6 +18,7 @@ matrix:
 
     - os: osx
       language: generic
+      osx_image: xcode7.3
       env:
         - R2_VERSION=2.6.0 R2M2_OSX=yes
 
@@ -29,10 +30,10 @@ install:
   # Install C related dependencies
   - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install make gcc git pkg-config; fi
   # Install Python related dependencies
-  - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install python-pip libffi-dev libpython-dev; fi
+  - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install libffi-dev libpython-dev; fi
   - if [ -z $R2M2_DOCKER ]; then pip install cffi jinja2; fi
   # Install radare2
-  - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION; cd radare2; ./sys/user.sh --without-pull; cd ..; fi
+  - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION; cd radare2; ./configure; cd shlr; make capstone-sync; cd ..; ./sys/user.sh --without-pull; cd ..; fi
   - if [ -z $R2M2_DOCKER ]; then export PATH=$HOME/bin/:$PATH; fi
   - if [ -z $R2M2_DOCKER ]; then export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/; fi
   # Install miasm2
@@ -43,6 +44,7 @@ install:
   - if [ -z $R2M2_DOCKER ]; then export PATH=bats/bin:$PATH; fi
 
 script:
+  - env
   ### Ubuntu & OS X ###
   # Build & install r2m2
   - if [ -z $R2M2_DOCKER ]; then make install; fi
