@@ -1,7 +1,7 @@
-# Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 # Retrieve radare2 related information
-R2_PLUGIN_PATH=$(HOME)/.config/radare2/plugins/
+R2_PLUGIN_PATH=$(HOME)/.local/share/radare2/plugins/
 R2_INCLUDES_PATH=$(shell r2 -hh|grep INCDIR|awk '{print $$2}')
 R2_CFLAGS=-g -fPIC $(shell pkg-config --cflags r_asm)
 
@@ -41,10 +41,10 @@ uninstall:
 
 # Targets to compile r2m2 plugins
 src/r2m2.h: tools/gen_includes.py src/r2m2.h.j2
-	python tools/gen_includes.py $(R2_INCLUDES_PATH)
+	python2 tools/gen_includes.py $(R2_INCLUDES_PATH)
 
 miasm_embedded_%.c: tools/cffi_miasm.py src/r2m2.h src/%_cffi.py
-	python tools/cffi_miasm.py $(shell echo $(basename $@) |cut -c 16-)
+	python2 tools/cffi_miasm.py $(shell echo $(basename $@) |cut -c 16-)
 
 %.$(SO_EXT): src/%.c miasm_embedded_%.c
 	$(CC) $(R2_CFLAGS) $(PYTHON2_CFLAGS) $^ -o $@ $(LINKER_OPTIONS) $(R2M2_LDFLAGS)

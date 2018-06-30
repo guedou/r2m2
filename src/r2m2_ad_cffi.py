@@ -1,4 +1,4 @@
-# Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 """
 r2m2 plugin that uses miasm2 as a radare2 disassembly and assembly backend
@@ -21,10 +21,8 @@ def miasm_machine():
     r2m2_arch = os.getenv("R2M2_ARCH")
     available_archs = Machine.available_machine()
 
-    if not r2m2_arch or not r2m2_arch in available_archs:
-        message = "Please specify a valid miasm2 arch in the R2M2_ARCH " \
-                  "environment variable !\n" \
-                  "The following are available: "
+    if not r2m2_arch or r2m2_arch not in available_archs:
+        message = "Please specify a valid miasm2 arch in the R2M2_ARCH environment variable !\nThe following are available: "
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
 
@@ -71,12 +69,10 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
             for i in range(len(instr.args)):
                 if args_size[i] is None:
                     continue
-                if isinstance(instr.args[i], ExprId) and \
-                   isinstance(instr.args[i].name, AsmLabel):
+                if isinstance(instr.args[i], ExprId) and isinstance(instr.args[i].name, AsmLabel):
                     addr = str(instr.args[i].name)
                     addr = int(addr.split(":")[1], 16)
                     instr.args[i] = ExprInt(addr, args_size[i])
-
 
         dis_str = str(instr)
         dis_len = instr.l
@@ -84,10 +80,10 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
         dis_str = "/!\ Can't disassemble using miasm /!\\"
         dis_len = 2  # GV: seems fischy !
 
-    # Remaining bytes
+    # Remaining bytes
     buf_hex = opcode[0:dis_len].encode("hex")
 
-    # Check buffer sizes
+    # Check buffer sizes
     if len(dis_str)-1 > 256:
         dis_str = "/!\ Disassembled instruction is too long /!\\"
     if len(buf_hex)-1 > 256:
@@ -128,10 +124,10 @@ def miasm_asm(r2_op, r2_address, r2_buffer):
         instr.fixDstOffset()
     asm_instr = [i for i in mn.asm(instr)][0]
 
-    # Assembled instructions in hexadecimal
+    # Assembled instructions in hexadecimal
     buf_hex = asm_instr.encode("hex")
 
-    # Check buffer sizes
+    # Check buffer sizes
     if len(asm_instr)-1 > 256:
         print >> sys.stderr, "/!\ Assembled instruction is too long /!\\"
         return

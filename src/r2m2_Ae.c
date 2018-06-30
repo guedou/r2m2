@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
+// Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 // r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
 
@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <r_asm.h>
 #include <r_lib.h>
+#include <r_version.h>
 #include "r2m2.h"
 #include "r2m2_Ae.h"
 
@@ -86,8 +87,9 @@ struct r_anal_plugin_t r_anal_plugin_r2m2 = {
 };
 
 #ifndef CORELIB
-struct r_lib_struct_t radare_plugin = {
+RLibStruct radare_plugin = {
     .type = R_LIB_TYPE_ANAL,
-    .data = &r_anal_plugin_r2m2
+    .data = &r_anal_plugin_r2m2,
+    .version = R2_VERSION
 };
 #endif

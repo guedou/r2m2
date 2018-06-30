@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
+// Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 // r2m2 plugin that uses miasm2 as a radare2 disassembly and assembly backend
 
@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <r_asm.h>
 #include <r_lib.h>
+#include <r_version.h>
 #include "r2m2.h"
 #include "r2m2_ad.h"
 
@@ -27,7 +28,7 @@ static int assemble (RAsm *rasm, RAsmOp *rop, const char *data) {
 
 
 #ifdef linux
-static int init(void *user) {
+static bool init(void *user) {
   // Load the libpython2.7 dynamic library
   void *libpython = dlopen ("libpython2.7.so", RTLD_LAZY|RTLD_GLOBAL);
 
@@ -57,8 +58,9 @@ RAsmPlugin r_asm_plugin_r2m2 = {
 
 
 #ifndef CORELIB
-struct r_lib_struct_t radare_plugin = {
+RLibStruct radare_plugin = {
     .type = R_LIB_TYPE_ASM,
-    .data = &r_asm_plugin_r2m2
+    .data = &r_asm_plugin_r2m2,
+    .version = R2_VERSION
 };
 #endif

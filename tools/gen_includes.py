@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# Copyright (C) 2016 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 """
 Automatically generate r2m2.h
@@ -23,7 +23,7 @@ def preprocessor(include_directory, include_filename):
         processed = subprocess.check_output(command)
     except OSError:
         sys.exit("preprocessor(): gcc can't be executed !")
-    except subprocess.CalledProcessError, cpe:
+    except subprocess.CalledProcessError as cpe:
         sys.exit("preprocessor(): got %s" % cpe)
 
     return processed
@@ -59,20 +59,57 @@ def extract_structure(include_content, structure_name):
     return structure
 
 
+def get_RList(directory):
+    """Get the RList structure"""
+
+    # Get the preprocessed include file content
+    filename = "%s/r_list.h" % directory
+    include_content = preprocessor(directory, filename)
+
+    # Extract the RList structure and its dependencies
+    RList_structure = [l for l in include_content.split("\n") if "typedef" in l and "RListFree" in l][0]
+    RList_structure += extract_structure(include_content, "RListIter")
+    RList_structure += extract_structure(include_content, "RList").replace("RListIter", "RListIter_r2m2")
+    RList_structure = RList_structure.replace("RListFree", "RListFree_r2m2")
+    return RList_structure
+
+
 def get_RAsmOp_structure(directory):
     """Get and transform the RAsmOp structure and dependencies"""
 
     # Get the preprocessed include file content
-    filename = "%s/r_asm.h" % directory
+    filename = "%s/r_util/r_mem.h" % directory
     include_content = preprocessor(directory, filename)
 
+    # Extract the RBuffer structure
+    RMmap_structure = extract_structure(include_content, "RMmap").replace("ut8", "unsigned char")
+    RMmap_structure = RMmap_structure.replace("ut64", "unsigned long long")
+
+    # Get the preprocessed include file content
+    filename = "%s/r_util/r_buf.h" % directory
+    include_content = preprocessor(directory, filename)
+
+    # Extract the RList structure
+    RList_structure = get_RList(directory)
+
+    # Extract the RBuffer structure
+    RBuffer_structure = extract_structure(include_content, "RBuffer").replace("ut8", "unsigned char")
+    RBuffer_structure = RBuffer_structure.replace("ut64", "unsigned long long")
+    RBuffer_structure = RBuffer_structure.replace("st64", "long long")
+    RBuffer_structure = RBuffer_structure.replace("bool", "char")
+    RBuffer_structure = RBuffer_structure.replace("RMmap", "RMmap_r2m2")
+    RBuffer_structure = RBuffer_structure.replace("RList", "RList_r2m2")
+
+    # Get the preprocessed include file content
+    filename = "%s/r_asm.h" % directory
+    include_content = preprocessor(directory, filename)
     # Extract the RAsmOp structure
-    RAsmOp_structure = extract_structure(include_content, "RAsmOp")
+    RAsmOp_structure = extract_structure(include_content, "RAsmOp").replace("RBuffer", "RBuffer_r2m2")
 
     # Patch some values
     RAsmOp_structure = RAsmOp_structure.replace("255 + 1", "256")
 
-    return RAsmOp_structure
+    return RList_structure + RMmap_structure + RBuffer_structure + RAsmOp_structure
 
 
 def get_RAnalOp_structure(directory):
@@ -84,14 +121,6 @@ def get_RAnalOp_structure(directory):
     filename = "%s/r_list.h" % directory
     include_content = preprocessor(directory, filename)
 
-    # Extract the RList structure and its dependencies
-    RList_structure = [l for l in include_content.split("\n") if "typedef" in l and "RListFree" in l][0]
-    RList_structure += extract_structure(include_content, "RListIter")
-    RList_structure += extract_structure(include_content, "RList").replace("RListIter", "RListIter_r2m2")
-    RList_structure = RList_structure.replace("RListFree", "RListFree_r2m2")
-    structures.append(RList_structure)
-
-
     # Get the preprocessed include file content
     filename = "%s/r_reg.h" % directory
     include_content = preprocessor(directory, filename)
@@ -100,7 +129,6 @@ def get_RAnalOp_structure(directory):
     RRegItem_structure = extract_structure(include_content, "RRegItem")
     structures.append(RRegItem_structure)
 
-
     # Get the preprocessed include file content
     filename = "%s/r_util.h" % directory
     include_content = preprocessor(directory, filename)
@@ -108,7 +136,6 @@ def get_RAnalOp_structure(directory):
     # Extract the RStrBuf structure
     RStrBuf_structure = extract_structure(include_content, "RStrBuf")
     structures.append(RStrBuf_structure)
-
 
     # Get the preprocessed include file content
     filename = "%s/r_anal.h" % directory
@@ -129,9 +156,14 @@ def get_RAnalOp_structure(directory):
     RAnalSwitchOp_structure = RAnalSwitchOp_structure.replace("RList", "RList_r2m2")
     structures.append(RAnalSwitchOp_structure)
 
+    # Extract the RAnalHint structure
+    RAnalHint_structure = extract_structure(include_content, "RAnalHint")
+    structures.append(RAnalHint_structure)
+
     # Extract the structure
     RAnalOp_structure = extract_structure(include_content, "RAnalOp")
     RAnalOp_structure = RAnalOp_structure.replace("RAnalVar", "RAnalVar_r2m2")
+    RAnalOp_structure = RAnalOp_structure.replace("RAnalHint", "RAnalHint_r2m2")
     RAnalOp_structure = RAnalOp_structure.replace("RAnalValue", "RAnalValue_r2m2")
     RAnalOp_structure = RAnalOp_structure.replace("RStrBuf", "RStrBuf_r2m2")
     RAnalOp_structure = RAnalOp_structure.replace("RAnalSwitchOp", "RAnalSwitchOp_r2m2")

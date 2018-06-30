@@ -1,4 +1,4 @@
-# Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 """
 r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
@@ -10,8 +10,7 @@ import sys
 import importlib
 
 from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, \
-                                         ExprOp, ExprMem, ExprCompose, ExprSlice
+from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose, ExprSlice
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmblock import AsmLabel, AsmSymbolPool
 
@@ -20,6 +19,7 @@ from miasm_embedded_r2m2_Ae import ffi
 
 # libc CFFI handle
 CFFI_LIBC = ffi.dlopen()
+
 
 def alloc_string(string):
     """malloc & strcpy a string.
@@ -36,10 +36,8 @@ def miasm_machine():
     r2m2_arch = os.getenv("R2M2_ARCH")
     available_archs = Machine.available_machine()
 
-    if not r2m2_arch or not r2m2_arch in available_archs:
-        message = "Please specify a valid miasm2 arch in the R2M2_ARCH " \
-                  "environment variable !\n" \
-                  "The following are available: "
+    if not r2m2_arch or r2m2_arch not in available_archs:
+        message = "Please specify a valid miasm2 arch in the R2M2_ARCH environment variable !\nThe following are available: "
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
 
@@ -80,7 +78,7 @@ def miasm_get_reg_profile():
             reg = get_reg(mode)
             if reg:
                 reg_profile += "=%s %6s\n" % (alias, reg.name.lower())
-    except AttributeError, aerror:  # GV: too generic !
+    except AttributeError as aerror:  # GV: too generic !
         print >> sys.stderr, "R2M2 ERROR: %s" % aerror
 
     # Add all registers
@@ -114,10 +112,8 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     # Cast radare2 variables
     opcode = ffi.cast("char*", r2_buffer)
 
-
     # Prepare the opcode
     opcode = ffi.unpack(opcode, r2_length)
-
 
     # Disassemble the opcode
     try:
@@ -133,7 +129,6 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         # Can't do anything with an invalid instruction
         return
 
-
     # Cast the RAnalOp structure and fill some fields
     r2_analop = ffi.cast("RAnalOp_r2m2*", r2_op)
     r2_analop.mnemonic = alloc_string(instr.name)
@@ -144,7 +139,6 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     # Convert miasm expressions to ESIL
     get_esil(r2_analop, instr)
 
-
     ### Architecture agnostic analysis
 
     # Instructions that *DO NOT* stop a basic bloc
@@ -152,7 +146,6 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         return
     else:
         r2_analop.eob = 1  # End Of Block
-
 
     # Assume that an instruction starting with 'RET' is a return
     # Note: add it to miasm2 as getpc() ?
@@ -272,10 +265,7 @@ def get_esil(analop, instruction):
 def m2_filter_IRDst(ir_list):
     """Filter IRDst from the expessions list"""
 
-    return [ ir for ir in ir_list if not (isinstance(ir, ExprAff) and \
-                                          isinstance(ir.dst, ExprId) and
-                                          ir.dst.name == "IRDst")
-           ]
+    return [ir for ir in ir_list if not (isinstance(ir, ExprAff) and isinstance(ir.dst, ExprId) and ir.dst.name == "IRDst")]
 
 
 def m2instruction_to_r2esil(instruction):
@@ -291,8 +281,7 @@ def m2instruction_to_r2esil(instruction):
 
     # Remove IRDst
     for i in iir:
-        if isinstance(i, ExprAff) and isinstance(i.dst, ExprId) \
-           and i.dst.name == "IRDst":
+        if isinstance(i, ExprAff) and isinstance(i.dst, ExprId) and i.dst.name == "IRDst":
             iir.remove(i)
 
     # Convert IRs
@@ -363,7 +352,7 @@ def m2expr_to_r2esil(iir):
         esil_strings = []
         for start, expr in iir.iter_args():
             stop = start + expr.size
-            mask = (2**stop -1) - (2**start -1)
+            mask = (2**stop - 1) - (2**start - 1)
             esil_strings.append("%s,%s,&" % (m2expr_to_r2esil(expr), hex(mask)))
 
         l = esil_strings
@@ -377,7 +366,7 @@ def m2expr_to_r2esil(iir):
 
     elif isinstance(iir, ExprSlice):
 
-        mask = (2**iir.stop -1) - (2**iir.start -1)
+        mask = (2**iir.stop - 1) - (2**iir.start - 1)
         return "%s,%s,&" % (m2expr_to_r2esil(iir.arg), hex(mask))
 
     elif isinstance(iir, ExprCond):
@@ -399,8 +388,7 @@ def m2expr_to_r2esil(iir):
 
             return m2expr_to_r2esil(tmp_src)
 
-        elif isinstance(iir.cond, ExprOp) or isinstance(iir.cond, ExprId) or \
-             isinstance(iir.cond, ExprCond):
+        elif isinstance(iir.cond, ExprOp) or isinstance(iir.cond, ExprId) or isinstance(iir.cond, ExprCond):
             condition = m2expr_to_r2esil(iir.cond)
             if_clause = m2expr_to_r2esil(iir.src1)
             then_clause = m2expr_to_r2esil(iir.src2)
