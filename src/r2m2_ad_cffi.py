@@ -9,7 +9,7 @@ import os
 import sys
 
 from miasm2.analysis.machine import Machine
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from miasm2.expression.expression import ExprInt, ExprLoc
 
 from miasm_embedded_r2m2_ad import ffi
@@ -48,7 +48,7 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
         return
 
     # Disassemble the opcode
-    symbol_pool = AsmSymbolPool()
+    loc_db = LocationDB()
     try:
         mode = machine.dis_engine().attrib
         instr = machine.mn().dis(opcode, mode)
@@ -63,14 +63,14 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
                     args_size.append(None)
 
             # Adjust arguments values using the instruction offset
-            instr.dstflow2label(symbol_pool)
+            instr.dstflow2label(loc_db)
 
             # Convert ExprLoc to ExprInt
             for i in range(len(instr.args)):
                 if args_size[i] is None:
                     continue
                 if isinstance(instr.args[i], ExprLoc):
-                    addr = symbol_pool.loc_key_to_offset(instr.args[i].loc_key)
+                    addr = loc_db.get_location_offset(instr.args[i].loc_key)
                     instr.args[i] = ExprInt(addr, args_size[i])
 
         dis_str = str(instr)
@@ -115,8 +115,9 @@ def miasm_asm(r2_op, r2_address, r2_buffer):
     mn = machine.mn()
 
     # Assemble and return all possible candidates
+    loc_db = LocationDB()
     mode = machine.dis_engine().attrib
-    instr = mn.fromstring(mn_str, AsmSymbolPool(), mode)
+    instr = mn.fromstring(mn_str, loc_db, mode)
     instr.mode = mode
     instr.offset = r2_address
     if instr.offset and instr.dstflow():
