@@ -6,6 +6,8 @@ matrix:
       dist: trusty
       sudo: required
       python: 2.7
+      virtualenv:
+          system_site_packages: true
       env:
         - R2_VERSION=2.6.0 R2M2_UBUNTU=yes
 
@@ -31,13 +33,13 @@ install:
   - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install make gcc git pkg-config; fi
   # Install Python related dependencies
   - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install libffi-dev libpython-dev; fi
-  - if [ -z $R2M2_DOCKER ]; then pip install cffi jinja2; fi
+  - if [ -z $R2M2_DOCKER ]; then pip2 install cffi jinja2; fi
   # Install radare2
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION; cd radare2; ./configure; cd shlr; make capstone-sync; cd ..; ./sys/user.sh --without-pull; cd ..; fi
   - if [ -z $R2M2_DOCKER ]; then export PATH=$HOME/bin/:$PATH; fi
   - if [ -z $R2M2_DOCKER ]; then export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/; fi
   # Install miasm2
-  - if [ -z $R2M2_DOCKER ]; then pip install pyparsing; fi
+  - if [ -z $R2M2_DOCKER ]; then pip2 install pyparsing; fi
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/cea-sec/miasm --depth 1; fi
   # Install bats
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/sstephenson/bats --depth 1; fi
