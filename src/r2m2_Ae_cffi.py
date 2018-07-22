@@ -29,6 +29,7 @@ def alloc_string(string):
     return ptr
 
 
+MIASM_MACHINE = None
 def miasm_machine():
     """Retrieve a miasm2 machine using the R2M2_ARCH environment variable."""
 
@@ -40,8 +41,13 @@ def miasm_machine():
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
 
+        return None
+
     else:
-        return Machine(r2m2_arch)
+        global MIASM_MACHINE
+        if MIASM_MACHINE is None:
+            MIASM_MACHINE = Machine(r2m2_arch)
+        return MIASM_MACHINE
 
 
 def m2op_to_r2cond(m2_op):

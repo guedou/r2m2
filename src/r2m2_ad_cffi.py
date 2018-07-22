@@ -15,6 +15,7 @@ from miasm2.expression.expression import ExprInt, ExprLoc
 from miasm_embedded_r2m2_ad import ffi
 
 
+MIASM_MACHINE = None
 def miasm_machine():
     """Retrieve a miasm2 machine using the R2M2_ARCH environment variable."""
 
@@ -28,7 +29,11 @@ def miasm_machine():
 
         return None
 
-    return Machine(r2m2_arch)
+    else:
+        global MIASM_MACHINE
+        if MIASM_MACHINE is None:
+            MIASM_MACHINE = Machine(r2m2_arch)
+        return MIASM_MACHINE
 
 
 @ffi.def_extern()
