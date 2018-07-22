@@ -7,6 +7,7 @@ r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
 
 import os
 import sys
+from collections import namedtuple
 
 from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose, ExprSlice, ExprLoc
@@ -16,12 +17,56 @@ from miasm2.core.locationdb import LocationDB
 from miasm_embedded_r2m2_Ae import ffi
 
 
+class CachedRAnalOp(object):
+    """
+    Cache the result of the miasm_anal() function
+    """
+
+    # RAnalOp members used by r2m2
+    mnemonic = None
+    size = None
+    type = None
+    eob = None
+    esil_string = None
+    jump = None
+    fail = None
+
+
+    def fill_ranalop(self, r2_op):
+        """
+        Fill the C structure
+        """
+
+        # Cast the RAnalOp structure and fill some fields
+        r2_analop = ffi.cast("RAnalOp_r2m2*", r2_op)
+
+        r2_analop.mnemonic = alloc_string(self.mnemonic)
+        r2_analop.size = self.size
+        r2_analop.type = self.type
+        r2_analop.eob = self.eob
+
+        if self.esil_string:
+            # Write the ESIL string to the buffer or allocate a string
+            if len(self.esil_string) < 64:
+                r2_analop.esil.buf = self.esil_string
+            else:
+                r2_analop.esil.ptr = alloc_string(self.esil_string)
+            r2_analop.esil.len = len(self.esil_string)
+
+        if self.jump:
+            r2_analop.jump = self.jump
+
+
+# Cheap LRU cache
+LRU_CACHE = dict()
+
+
 # libc CFFI handle
 CFFI_LIBC = ffi.dlopen()
 
 
 def alloc_string(string):
-    """malloc & strcpy a string.
+    """malloc & strncpy a string.
        Note: this is used to allow radare2 to call free() on the string."""
 
     ptr = CFFI_LIBC.malloc(len(string) + 1)
@@ -114,6 +159,19 @@ def miasm_get_reg_profile():
 def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     """Define an instruction behavior using miasm."""
 
+    # Return the cached result if any
+    global LRU_CACHE
+    result = LRU_CACHE.get(r2_address, None)
+    if not result is None:
+        result.fill_ranalop(r2_op)
+        return
+
+    # Cheap garbage collection
+    if False and len(LRU_CACHE.keys()) >= 10:
+        to_delete = [addr for addr in LRU_CACHE.keys() if addr < r2_address]
+        for key in to_delete[:5]:
+            del LRU_CACHE[key]
+
     # Cast radare2 variables
     opcode = ffi.cast("char*", r2_buffer)
 
@@ -135,58 +193,66 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         # Can't do anything with an invalid instruction
         return
 
-    # Cast the RAnalOp structure and fill some fields
-    r2_analop = ffi.cast("RAnalOp_r2m2*", r2_op)
-    r2_analop.mnemonic = alloc_string(instr.name)
-    r2_analop.size = dis_len
-    r2_analop.type = R_ANAL_OP_TYPE_UNK
-    r2_analop.eob = 0   # End Of Block
+    result = CachedRAnalOp()
+    result.mnemonic = instr.name
+    result.size = dis_len
+    result.type = R_ANAL_OP_TYPE_UNK
+    result.eob = 0   # End Of Block
 
     # Convert miasm expressions to ESIL
-    get_esil(r2_analop, instr, loc_db)
+    get_esil(result, instr, loc_db)
 
     ### Architecture agnostic analysis
 
     # Instructions that *DO NOT* stop a basic bloc
     if instr.breakflow() is False:
+        result.fill_ranalop(r2_op)
+        LRU_CACHE[r2_address] = result
         return
     else:
-        r2_analop.eob = 1  # End Of Block
+        result.eob = 1  # End Of Block
 
     # Assume that an instruction starting with 'RET' is a return
     # Note: add it to miasm2 as getpc() ?
     if instr.name[:3].upper().startswith("RET"):
-        r2_analop.type = R_ANAL_OP_TYPE_RET
+        result.type = R_ANAL_OP_TYPE_RET
 
     # Instructions that explicitly provide the destination
     if instr and instr.dstflow():
         expr = instr.getdstflow(None)[0]
 
         if instr.is_subcall():
-            r2_anal_subcall(r2_analop, expr, loc_db)
+            r2_anal_subcall(result, expr, loc_db)
+            result.fill_ranalop(r2_op)
+            LRU_CACHE[r2_address] = result
             return
 
-        if r2_analop.type == R_ANAL_OP_TYPE_UNK and instr.splitflow():
-            r2_anal_splitflow(r2_analop, r2_address, instr, expr, loc_db)
+        if result.type == R_ANAL_OP_TYPE_UNK and instr.splitflow():
+            r2_anal_splitflow(result, r2_address, instr, expr, loc_db)
+            result.fill_ranalop(r2_op)
+            LRU_CACHE[r2_address] = result
             return
 
         if isinstance(expr, ExprInt):
-            r2_analop.type = R_ANAL_OP_TYPE_JMP
-            r2_analop.jump = int(expr.arg) & 0xFFFFFFFFFFFFFFFF
+            result.type = R_ANAL_OP_TYPE_JMP
+            result.jump = int(expr.arg) & 0xFFFFFFFFFFFFFFFF
 
         elif isinstance(expr, ExprId):
-            r2_analop.type = R_ANAL_OP_TYPE_UJMP
+            result.type = R_ANAL_OP_TYPE_UJMP
 
         elif isinstance(expr, ExprLoc):
             addr = loc_db.get_location_offset(expr.loc_key)
-            r2_analop.type = R_ANAL_OP_TYPE_JMP
-            r2_analop.jump = addr & 0xFFFFFFFFFFFFFFFF
+            result.type = R_ANAL_OP_TYPE_JMP
+            result.jump = addr & 0xFFFFFFFFFFFFFFFF
 
         elif isinstance(expr, ExprMem):
-            r2_analop.type = R_ANAL_OP_TYPE_MJMP
+            result.type = R_ANAL_OP_TYPE_MJMP
 
         else:
             print >> sys.stderr, "miasm_anal(): don't know what to do with: %s" % instr
+
+    result.fill_ranalop(r2_op)
+    LRU_CACHE[r2_address] = result
 
 
 def r2_anal_splitflow(analop, address, instruction, expression, loc_db):
@@ -257,13 +323,7 @@ def get_esil(analop, instruction, loc_db):
 
     esil_string = m2instruction_to_r2esil(instruction, loc_db)
     if esil_string:
-        # Write the ESIL string to the buffer or allocate a string
-        if len(esil_string) < 64:
-            analop.esil.buf = esil_string
-            analop.esil.len = len(esil_string)
-        else:
-            analop.esil.ptr = alloc_string(esil_string)
-            analop.esil.len = len(esil_string)
+        analop.esil_string = esil_string
 
 
 def m2_filter_IRDst(ir_list):
