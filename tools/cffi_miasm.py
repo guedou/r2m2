@@ -1,11 +1,10 @@
 #!/usr/bin/env python2
-# Copyright (C) 2017 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
 
 """
 Generate the miasm embedded library
 """
 
-import sys
 import cffi
 import argparse
 
@@ -41,6 +40,6 @@ ffi.embedding_init_code("".join(open("src/%s_cffi.py" % args.plugin_name).readli
 
 # Compile the library, or dump the C code
 if not args.compile:
-  ffi.emit_c_code("miasm_embedded_%s.c" % args.plugin_name)
+    ffi.emit_c_code("miasm_embedded_%s.c" % args.plugin_name)
 else:
-  ffi.compile(verbose=True)
+    ffi.compile(verbose=True)

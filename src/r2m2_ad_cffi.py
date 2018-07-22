@@ -16,6 +16,8 @@ from miasm_embedded_r2m2_ad import ffi
 
 
 MIASM_MACHINE = None
+
+
 def miasm_machine():
     """Retrieve a miasm2 machine using the R2M2_ARCH environment variable."""
 

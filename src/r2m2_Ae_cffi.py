@@ -7,7 +7,6 @@ r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
 
 import os
 import sys
-from collections import namedtuple
 
 from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose, ExprSlice, ExprLoc
@@ -30,7 +29,6 @@ class CachedRAnalOp(object):
     esil_string = None
     jump = None
     fail = None
-
 
     def fill_ranalop(self, r2_op):
         """
@@ -75,6 +73,8 @@ def alloc_string(string):
 
 
 MIASM_MACHINE = None
+
+
 def miasm_machine():
     """Retrieve a miasm2 machine using the R2M2_ARCH environment variable."""
 
@@ -162,7 +162,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     # Return the cached result if any
     global LRU_CACHE
     result = LRU_CACHE.get(r2_address, None)
-    if not result is None:
+    if result is not None:
         result.fill_ranalop(r2_op)
         return
 
@@ -202,7 +202,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     # Convert miasm expressions to ESIL
     get_esil(result, instr, loc_db)
 
-    ### Architecture agnostic analysis
+    # # # Architecture agnostic analysis
 
     # Instructions that *DO NOT* stop a basic bloc
     if instr.breakflow() is False:
@@ -329,7 +329,8 @@ def get_esil(analop, instruction, loc_db):
 def m2_filter_IRDst(ir_list):
     """Filter IRDst from the expessions list"""
 
-    return [ir for ir in ir_list if not (isinstance(ir, ExprAff) and isinstance(ir.dst, ExprId) and ir.dst.name == "IRDst")]
+    return [ir for ir in ir_list if not (isinstance(ir, ExprAff) and
+            isinstance(ir.dst, ExprId) and ir.dst.name == "IRDst")]
 
 
 def m2instruction_to_r2esil(instruction, loc_db):
