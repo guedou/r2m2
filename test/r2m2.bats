@@ -159,3 +159,12 @@
   [[ $result == *"strlen"* ]]
   [[ $result == *'"Hello"'* ]]
 }
+
+@test "Check R2AnalOp fail member" {
+  export R2M2_ARCH=mepl
+
+  # Call r2
+  result=$(r2 -a r2m2 -qc 'wa BEQZ R6, 0x28; pdj 1' -)
+  echo $result
+  [[ $result == *'"jump":40'* ]]
+}

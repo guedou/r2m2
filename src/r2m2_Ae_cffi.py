@@ -29,6 +29,7 @@ class CachedRAnalOp(object):
     esil_string = None
     jump = None
     fail = None
+    cond = None
 
     def fill_ranalop(self, r2_op):
         """
@@ -53,6 +54,12 @@ class CachedRAnalOp(object):
 
         if self.jump:
             r2_analop.jump = self.jump
+
+        if self.fail:
+            r2_analop.fail = self.fail
+
+        if self.cond:
+            r2_analop.cond = self.cond
 
 
 # Cheap LRU cache
