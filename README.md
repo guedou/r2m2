@@ -104,7 +104,7 @@ r2m2$ docker run --rm -it -e 'R2M2_ARCH=x86_64' guedou/r2m2
 
 The following softwares must be installed:
 
-1. radare2 (>= 2.6.0)
+1. radare2 (>= 2.9.0)
 
 2. miasm2
 

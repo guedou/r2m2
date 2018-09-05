@@ -9,7 +9,7 @@ matrix:
       virtualenv:
           system_site_packages: true
       env:
-        - R2_VERSION=2.6.0 R2M2_UBUNTU=yes
+        - R2_VERSION=2.9.0 R2M2_UBUNTU=yes
 
     - os: linux
       dist: trusty
@@ -22,7 +22,7 @@ matrix:
       language: generic
       osx_image: xcode7.3
       env:
-        - R2_VERSION=2.6.0 R2M2_OSX=yes
+        - R2_VERSION=2.9.0 R2M2_OSX=yes
 
 before_install:
   - if [ ! -z $R2M2_DOCKER ]; then docker build -t travis/r2m2 . ; fi

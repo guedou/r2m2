@@ -109,7 +109,15 @@ def get_RAsmOp_structure(directory):
     # Patch some values
     RAsmOp_structure = RAsmOp_structure.replace("255 + 1", "256")
 
-    return RList_structure + RMmap_structure + RBuffer_structure + RAsmOp_structure
+    # Get the preprocessed include file content
+    filename = "%s/r_util.h" % directory
+    include_content = preprocessor(directory, filename)
+
+    # Extract the RStrBuf structure
+    RStrBuf_structure = extract_structure(include_content, "RStrBuf")
+    RAsmOp_structure = RAsmOp_structure.replace("RStrBuf", "RStrBuf_r2m2")
+
+    return RList_structure + RMmap_structure + RBuffer_structure + RStrBuf_structure + RAsmOp_structure
 
 
 def get_RAnalOp_structure(directory):
@@ -128,14 +136,6 @@ def get_RAnalOp_structure(directory):
     # Extract the RRegItem structure
     RRegItem_structure = extract_structure(include_content, "RRegItem")
     structures.append(RRegItem_structure)
-
-    # Get the preprocessed include file content
-    filename = "%s/r_util.h" % directory
-    include_content = preprocessor(directory, filename)
-
-    # Extract the RStrBuf structure
-    RStrBuf_structure = extract_structure(include_content, "RStrBuf")
-    structures.append(RStrBuf_structure)
 
     # Get the preprocessed include file content
     filename = "%s/r_anal.h" % directory

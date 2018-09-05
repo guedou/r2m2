@@ -48,7 +48,7 @@
   # Call r2
   result=$(R2M2_ARCH=mips32b r2 -a r2m2 -qc 'e asm.emu=true ; pd 1' binary)
   echo $result
-  [[ $result == *"a0=0xa4"* ]]
+  [[ $result == *"a0=0xffffffa4"* ]]
 }
 
 @test "Emulate CALL" {

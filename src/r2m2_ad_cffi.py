@@ -15,6 +15,15 @@ from miasm2.expression.expression import ExprInt, ExprLoc
 from miasm_embedded_r2m2_ad import ffi
 
 
+def set_rbuf(rbuf, str_data):
+    """Copy a string to a RStrBuf"""
+
+    if len(str_data) < 32:
+        rbuf.buf = str_data
+    else:
+        rbuf.buf = "/!\ buffer too long /!\\"
+
+
 MIASM_MACHINE = None
 
 
@@ -97,8 +106,8 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
 
     # Fill the RAsmOp structure
     rasmop.size = dis_len
-    rasmop.buf_asm = dis_str
-    rasmop.buf_hex = buf_hex
+    set_rbuf(rasmop.buf_asm, dis_str)
+    set_rbuf(rasmop.buf_hex, buf_hex)
 
 
 @ffi.def_extern()
@@ -144,5 +153,5 @@ def miasm_asm(r2_op, r2_address, r2_buffer):
 
     # Fill the RAsmOp structure
     rasmop.size = len(asm_instr)
-    rasmop.buf = asm_instr
-    rasmop.buf_hex = buf_hex
+    set_rbuf(rasmop.buf, asm_instr)
+    set_rbuf(rasmop.buf_hex, buf_hex)

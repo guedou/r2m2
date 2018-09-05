@@ -9,7 +9,8 @@ import os
 import sys
 
 from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprInt, ExprAff, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose, ExprSlice, ExprLoc
+from miasm2.expression.expression import ExprInt, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose
+from miasm2.expression.expression import ExprSlice, ExprLoc, ExprAssign
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.locationdb import LocationDB
 
@@ -46,7 +47,7 @@ class CachedRAnalOp(object):
 
         if self.esil_string:
             # Write the ESIL string to the buffer or allocate a string
-            if len(self.esil_string) < 64:
+            if len(self.esil_string) < 32:
                 r2_analop.esil.buf = self.esil_string
             else:
                 r2_analop.esil.ptr = alloc_string(self.esil_string)
@@ -262,6 +263,12 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
     LRU_CACHE[r2_address] = result
 
 
+def isAssignation(miam2_ir_obj):
+    """Check if the IR object assign a value to another."""
+
+    return isinstance(miam2_ir_obj, ExprAssign)
+
+
 def r2_anal_splitflow(analop, address, instruction, expression, loc_db):
     """Handle splitflow analysis"""
 
@@ -274,7 +281,7 @@ def r2_anal_splitflow(analop, address, instruction, expression, loc_db):
 
     # Get the IR and only keep affectations
     iir, _ = ir.get_ir(instruction)
-    aff = [i for i in iir if isinstance(i, ExprAff)]
+    aff = [i for i in iir if isAssignation(i)]
 
     # Only keep one affectation to 'PC'
     current_pc = machine.mn.getpc(mode)
@@ -336,7 +343,7 @@ def get_esil(analop, instruction, loc_db):
 def m2_filter_IRDst(ir_list):
     """Filter IRDst from the expessions list"""
 
-    return [ir for ir in ir_list if not (isinstance(ir, ExprAff) and
+    return [ir for ir in ir_list if not (isAssignation(ir) and
             isinstance(ir.dst, ExprId) and ir.dst.name == "IRDst")]
 
 
@@ -351,20 +358,14 @@ def m2instruction_to_r2esil(instruction, loc_db):
     except:
         iir, eiir = [], []
 
-    # Remove IRDst
-    for i in iir:
-        if isinstance(i, ExprAff) and isinstance(i.dst, ExprId) and i.dst.name == "IRDst":
-            iir.remove(i)
-
     # Convert IRs
     result = list()
-
     if iir:
         result += [m2expr_to_r2esil(ir, loc_db) for ir in m2_filter_IRDst(iir)]
 
     for irblock in eiir:
         for ir_list in irblock.assignblks:
-            aff = (ExprAff(dst, src) for dst, src in ir_list.iteritems())
+            aff = (ExprAssign(dst, src) for dst, src in ir_list.iteritems())
             result += (m2expr_to_r2esil(ir, loc_db) for ir in m2_filter_IRDst(aff))
 
     if not len(result):
@@ -386,10 +387,10 @@ def m2expr_to_r2esil(iir, loc_db):
         return hex(iir.arg)
 
     if isinstance(iir, ExprMem):
-        ret = "%s,[]" % m2expr_to_r2esil(iir.arg, loc_db)
+        ret = "%s,[%d]" % (m2expr_to_r2esil(iir.arg, loc_db), iir.size/8)
         return ret.lower()
 
-    elif isinstance(iir, ExprAff):
+    elif isAssignation(iir):
         if not isinstance(iir.dst, ExprMem):
             esil_dst = m2expr_to_r2esil(iir.dst, loc_db)
             return "%s,%s,=" % (m2expr_to_r2esil(iir.src, loc_db), esil_dst)
@@ -402,10 +403,25 @@ def m2expr_to_r2esil(iir, loc_db):
         if len(iir.args) == 2:
             arg_1 = m2expr_to_r2esil(iir.args[1], loc_db)
             arg_0 = m2expr_to_r2esil(iir.args[0], loc_db)
+            if iir.op == "FLAG_SIGN_SUB":
+                shift = iir.args[1].size - 1
+                return "%s,%s,-,%d,>>" % (arg_1, arg_0, shift)
             return "%s,%s,%s" % (arg_1, arg_0, iir.op)
         elif iir.op == "parity":
             arg = m2expr_to_r2esil(iir.args[0], loc_db)
             return "%s,1,&,?{,0,}{,1,}" % arg
+        elif iir.op.startswith("signExt_") and isinstance(iir.args[0], ExprMem):
+            argsize = iir.args[0].size
+            bits = int(iir.op.split("_")[1])
+            test = 1 << (argsize - 1)
+            mask = 2**bits-1 ^ 2**argsize-1
+            tmp = m2expr_to_r2esil(iir.args[0], loc_db)
+            sign_extension = "%s,0x%x,&,1,?{,%s,0x%x,+,}{,%s,}"
+            return sign_extension % (tmp, test, tmp, mask, tmp)
+        elif iir.op.startswith("zeroExt_"):
+            return m2expr_to_r2esil(iir.args[0], loc_db)
+        elif iir.op == "CC_EQ":
+            return m2expr_to_r2esil(iir.args[0], loc_db)
         else:
             return "%s,0,%s" % (m2expr_to_r2esil(iir.args[0], loc_db), iir.op)
 
