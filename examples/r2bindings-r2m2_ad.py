@@ -6,7 +6,7 @@
 Simple r2m2 native ad plugin for x86_64
 
 Note: it could be used as follows:
-    $ r2pm install lang-python
+    $ r2pm install lang-python2
     $ r2 -i r2bindings-r2m2_ad.py -qc 'e asm.arch=r2m2_native; pd 5' /bin/ls
 """
 
