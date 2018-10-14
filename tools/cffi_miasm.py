@@ -36,7 +36,9 @@ char *strncpy(char *dest, const char *src, size_t n);
 """)
 
 # Python code that will be embedded
-ffi.embedding_init_code("".join(open("src/%s_cffi.py" % args.plugin_name).readlines()))
+fdesc = open("src/%s_cffi.py" % args.plugin_name)
+ffi.embedding_init_code("".join(fdesc.readlines()))
+fdesc.close()
 
 # Compile the library, or dump the C code
 if not args.compile:

@@ -44,13 +44,14 @@ def r2m2_dis(opcode):
 
 def r2m2_ad_plugin(a):
 
-    return { "name": "r2m2_native",
-             "arch": "r2m2_native",
-             "bits": 32,
-             "license": "LGPL3",
-             "desc": "miasm2 backend with radare2-bindings",
-             "assemble": r2m2_asm,
-             "disassemble": r2m2_dis }
+    return {"name": "r2m2_native",
+            "arch": "r2m2_native",
+            "bits": 32,
+            "license": "LGPL3",
+            "desc": "miasm2 backend with radare2-bindings",
+            "assemble": r2m2_asm,
+            "disassemble": r2m2_dis}
+
 
 # Register the ad plugin
 r2lang.plugin("asm", r2m2_ad_plugin)

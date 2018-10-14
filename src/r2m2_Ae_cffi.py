@@ -9,7 +9,8 @@ import os
 import sys
 
 from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprInt, ExprId, ExprCond, ExprOp, ExprMem, ExprCompose
+from miasm2.expression.expression import ExprInt, ExprId, ExprCond, ExprOp
+from miasm2.expression.expression import ExprMem, ExprCompose
 from miasm2.expression.expression import ExprSlice, ExprLoc, ExprAssign
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.locationdb import LocationDB
@@ -90,7 +91,8 @@ def miasm_machine():
     available_archs = Machine.available_machine()
 
     if not r2m2_arch or r2m2_arch not in available_archs:
-        message = "Please specify a valid miasm2 arch in the R2M2_ARCH environment variable !\nThe following are available: "
+        message = "Please specify a valid miasm2 arch in the R2M2_ARCH "
+        message += "environment variable !\nThe following are available: "
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
 
@@ -257,7 +259,8 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
             result.type = R_ANAL_OP_TYPE_MJMP
 
         else:
-            print >> sys.stderr, "miasm_anal(): don't know what to do with: %s" % instr
+            msg = "miasm_anal(): don't know what to do with: %s" % instr
+            print >> sys.stderr, msg
 
     result.fill_ranalop(r2_op)
     LRU_CACHE[r2_address] = result
@@ -316,7 +319,8 @@ def r2_anal_splitflow(analop, address, instruction, expression, loc_db):
         analop.fail = (address + instruction.l) & 0xFFFFFFFFFFFFFFFF
 
     else:
-        print >> sys.stderr, "r2_anal_splitflow(): don't know what to do with: %s" % instruction
+        msg_fmt = "r2_anal_splitflow(): don't know what to do with: %s"
+        print >> sys.stderr, msg_fmt % instruction
 
 
 def r2_anal_subcall(analop, expression, loc_db):
@@ -366,7 +370,8 @@ def m2instruction_to_r2esil(instruction, loc_db):
     for irblock in eiir:
         for ir_list in irblock.assignblks:
             aff = (ExprAssign(dst, src) for dst, src in ir_list.iteritems())
-            result += (m2expr_to_r2esil(ir, loc_db) for ir in m2_filter_IRDst(aff))
+            result += (m2expr_to_r2esil(ir, loc_db) for ir in
+                       m2_filter_IRDst(aff))
 
     if not len(result):
         return None
@@ -431,7 +436,8 @@ def m2expr_to_r2esil(iir, loc_db):
         for start, expr in iir.iter_args():
             stop = start + expr.size
             mask = (2**stop - 1) - (2**start - 1)
-            esil_strings.append("%s,%s,&" % (m2expr_to_r2esil(expr, loc_db), hex(mask)))
+            esil_tmp = "%s,%s,&" % (m2expr_to_r2esil(expr, loc_db), hex(mask))
+            esil_strings.append(esil_tmp)
 
         l = esil_strings
         if len(l) == 2:
@@ -466,7 +472,8 @@ def m2expr_to_r2esil(iir, loc_db):
 
             return m2expr_to_r2esil(tmp_src, loc_db)
 
-        elif isinstance(iir.cond, ExprOp) or isinstance(iir.cond, ExprId) or isinstance(iir.cond, ExprCond):
+        elif (isinstance(iir.cond, ExprOp) or isinstance(iir.cond, ExprId) or
+                isinstance(iir.cond, ExprCond)):
             condition = m2expr_to_r2esil(iir.cond, loc_db)
             if_clause = m2expr_to_r2esil(iir.src1, loc_db)
             then_clause = m2expr_to_r2esil(iir.src2, loc_db)

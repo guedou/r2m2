@@ -50,11 +50,13 @@ def get_between(content, pattern_start, pattern_stop):
 def extract_structure(include_content, structure_name):
     """Extract a radare2 structure and transform it."""
 
-    structure = get_between(include_content, "typedef", "} %s;" % structure_name)
+    tmp_fmt = "} %s;" % structure_name
+    structure = get_between(include_content, "typedef", tmp_fmt)
 
     # Rename the structure names
     structure = structure.replace("_t {", "_t_r2m2 {")
-    structure = structure.replace("%s;" % structure_name, "%s_r2m2;" % structure_name)
+    structure = structure.replace("%s;" % structure_name,
+                                  "%s_r2m2;" % structure_name)
 
     return structure
 
@@ -67,9 +69,12 @@ def get_RList(directory):
     include_content = preprocessor(directory, filename)
 
     # Extract the RList structure and its dependencies
-    RList_structure = [l for l in include_content.split("\n") if "typedef" in l and "RListFree" in l][0]
+    RList_structure = [l for l in include_content.split("\n")
+                       if "typedef" in l and "RListFree" in l][0]
     RList_structure += extract_structure(include_content, "RListIter")
-    RList_structure += extract_structure(include_content, "RList").replace("RListIter", "RListIter_r2m2")
+    RList_structure += extract_structure(include_content,
+                                         "RList").replace("RListIter",
+                                                          "RListIter_r2m2")
     RList_structure = RList_structure.replace("RListFree", "RListFree_r2m2")
     return RList_structure
 
@@ -82,7 +87,9 @@ def get_RAsmOp_structure(directory):
     include_content = preprocessor(directory, filename)
 
     # Extract the RBuffer structure
-    RMmap_structure = extract_structure(include_content, "RMmap").replace("ut8", "unsigned char")
+    RMmap_structure = extract_structure(include_content,
+                                        "RMmap").replace("ut8",
+                                                         "unsigned char")
     RMmap_structure = RMmap_structure.replace("ut64", "unsigned long long")
 
     # Get the preprocessed include file content
@@ -93,7 +100,9 @@ def get_RAsmOp_structure(directory):
     RList_structure = get_RList(directory)
 
     # Extract the RBuffer structure
-    RBuffer_structure = extract_structure(include_content, "RBuffer").replace("ut8", "unsigned char")
+    RBuffer_structure = extract_structure(include_content,
+                                          "RBuffer").replace("ut8",
+                                                             "unsigned char")
     RBuffer_structure = RBuffer_structure.replace("ut64", "unsigned long long")
     RBuffer_structure = RBuffer_structure.replace("st64", "long long")
     RBuffer_structure = RBuffer_structure.replace("bool", "char")
@@ -104,7 +113,9 @@ def get_RAsmOp_structure(directory):
     filename = "%s/r_asm.h" % directory
     include_content = preprocessor(directory, filename)
     # Extract the RAsmOp structure
-    RAsmOp_structure = extract_structure(include_content, "RAsmOp").replace("RBuffer", "RBuffer_r2m2")
+    RAsmOp_structure = extract_structure(include_content,
+                                         "RAsmOp").replace("RBuffer",
+                                                           "RBuffer_r2m2")
 
     # Patch some values
     RAsmOp_structure = RAsmOp_structure.replace("255 + 1", "256")
@@ -117,7 +128,8 @@ def get_RAsmOp_structure(directory):
     RStrBuf_structure = extract_structure(include_content, "RStrBuf")
     RAsmOp_structure = RAsmOp_structure.replace("RStrBuf", "RStrBuf_r2m2")
 
-    return RList_structure + RMmap_structure + RBuffer_structure + RStrBuf_structure + RAsmOp_structure
+    return RList_structure + RMmap_structure + RBuffer_structure + \
+        RStrBuf_structure + RAsmOp_structure
 
 
 def get_RAnalOp_structure(directory):
@@ -148,12 +160,15 @@ def get_RAnalOp_structure(directory):
 
     # Extract the RAnalValue structure
     RAnalValue_structure = extract_structure(include_content, "RAnalValue")
-    RAnalValue_structure = RAnalValue_structure.replace("RRegItem", "RRegItem_r2m2")
+    RAnalValue_structure = RAnalValue_structure.replace("RRegItem",
+                                                        "RRegItem_r2m2")
     structures.append(RAnalValue_structure)
 
     # Extract the RAnalSwitchOp structure
-    RAnalSwitchOp_structure = extract_structure(include_content, "RAnalSwitchOp")
-    RAnalSwitchOp_structure = RAnalSwitchOp_structure.replace("RList", "RList_r2m2")
+    RAnalSwitchOp_structure = extract_structure(include_content,
+                                                "RAnalSwitchOp")
+    RAnalSwitchOp_structure = RAnalSwitchOp_structure.replace("RList",
+                                                              "RList_r2m2")
     structures.append(RAnalSwitchOp_structure)
 
     # Extract the RAnalHint structure
@@ -163,10 +178,13 @@ def get_RAnalOp_structure(directory):
     # Extract the structure
     RAnalOp_structure = extract_structure(include_content, "RAnalOp")
     RAnalOp_structure = RAnalOp_structure.replace("RAnalVar", "RAnalVar_r2m2")
-    RAnalOp_structure = RAnalOp_structure.replace("RAnalHint", "RAnalHint_r2m2")
-    RAnalOp_structure = RAnalOp_structure.replace("RAnalValue", "RAnalValue_r2m2")
+    RAnalOp_structure = RAnalOp_structure.replace("RAnalHint",
+                                                  "RAnalHint_r2m2")
+    RAnalOp_structure = RAnalOp_structure.replace("RAnalValue",
+                                                  "RAnalValue_r2m2")
     RAnalOp_structure = RAnalOp_structure.replace("RStrBuf", "RStrBuf_r2m2")
-    RAnalOp_structure = RAnalOp_structure.replace("RAnalSwitchOp", "RAnalSwitchOp_r2m2")
+    RAnalOp_structure = RAnalOp_structure.replace("RAnalSwitchOp",
+                                                  "RAnalSwitchOp_r2m2")
     structures.append(RAnalOp_structure)
 
     return "\n".join(structures)
@@ -174,7 +192,8 @@ def get_RAnalOp_structure(directory):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("directory", help="radare2 directory containing include files")
+    parser.add_argument("directory",
+                        help="radare2 directory containing include files")
     args = parser.parse_args()
 
     # Check if the directory exists

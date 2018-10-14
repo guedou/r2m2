@@ -34,7 +34,8 @@ def miasm_machine():
     available_archs = Machine.available_machine()
 
     if not r2m2_arch or r2m2_arch not in available_archs:
-        message = "Please specify a valid miasm2 arch in the R2M2_ARCH environment variable !\nThe following are available: "
+        message = "Please specify a valid miasm2 arch in the R2M2_ARCH "
+        message += "environment variable !\nThe following are available: "
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
 
@@ -91,7 +92,7 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
 
         dis_str = str(instr)
         dis_len = instr.l
-    except:
+    except Exception:
         dis_str = "/!\ Can't disassemble using miasm /!\\"
         dis_len = 2  # GV: seems fischy !
 
