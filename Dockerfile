@@ -1,5 +1,5 @@
 # r2m2 x Docker
-FROM base/archlinux
+FROM archlinux/base
 MAINTAINER Guillaume Valadon <guillaume@valadon.net>
 
 # Create the r2m2 user
@@ -8,7 +8,7 @@ RUN useradd r2m2 --create-home
 
 # Install packages
 RUN set -x && \
-    PACKAGES="radare2 git python2-jinja python2-cffi make gcc pkg-config " && \
+    PACKAGES="radare2 git python2-jinja python2-cffi python2-future make gcc pkg-config " && \
     PACKAGES+="bash-bats libunistring gawk grep" && \
     pacman -Sy && pacman -S --noconfirm archlinux-keyring && \
     pacman -S --noconfirm $PACKAGES && \

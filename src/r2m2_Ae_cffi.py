@@ -1,19 +1,19 @@
-# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
 
 """
-r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
+r2m2 plugin that uses miasm as a radare2 analysis and emulation backend
 """
 
 
 import os
 import sys
 
-from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprInt, ExprId, ExprCond, ExprOp
-from miasm2.expression.expression import ExprMem, ExprCompose
-from miasm2.expression.expression import ExprSlice, ExprLoc, ExprAssign
-from miasm2.expression.simplifications import expr_simp
-from miasm2.core.locationdb import LocationDB
+from miasm.analysis.machine import Machine
+from miasm.expression.expression import ExprInt, ExprId, ExprCond, ExprOp
+from miasm.expression.expression import ExprMem, ExprCompose
+from miasm.expression.expression import ExprSlice, ExprLoc, ExprAssign
+from miasm.expression.simplifications import expr_simp
+from miasm.core.locationdb import LocationDB
 
 from miasm_embedded_r2m2_Ae import ffi
 
@@ -85,13 +85,13 @@ MIASM_MACHINE = None
 
 
 def miasm_machine():
-    """Retrieve a miasm2 machine using the R2M2_ARCH environment variable."""
+    """Retrieve a miasm machine using the R2M2_ARCH environment variable."""
 
     r2m2_arch = os.getenv("R2M2_ARCH")
     available_archs = Machine.available_machine()
 
     if not r2m2_arch or r2m2_arch not in available_archs:
-        message = "Please specify a valid miasm2 arch in the R2M2_ARCH "
+        message = "Please specify a valid miasm arch in the R2M2_ARCH "
         message += "environment variable !\nThe following are available: "
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
@@ -106,7 +106,7 @@ def miasm_machine():
 
 
 def m2op_to_r2cond(m2_op):
-    """Convert a miasm2 conditonnal operator to a radare2 ANAL type."""
+    """Convert a miasm conditonnal operator to a radare2 ANAL type."""
 
     operator = [("==", R_ANAL_COND_EQ), ("!=", R_ANAL_COND_NE)]
 
@@ -123,12 +123,12 @@ def miasm_get_reg_profile():
 
     reg_profile = ""
 
-    # Get the miasm2 machine
+    # Get the miasm machine
     machine = miasm_machine()
     if machine is None:
         return alloc_string("")
 
-    # Get the miasm2 mnemonic class
+    # Get the miasm mnemonic class
     mn_cls = machine.mn
 
     # First add PC and SP aliases
@@ -149,7 +149,7 @@ def miasm_get_reg_profile():
         reg_name = reg_name.replace("(", "_").replace(")", "_")
         reg_name = reg_name.replace("_", "")
 
-        # Remove internal miasm2 register
+        # Remove internal miasm register
         if reg_name == "exceptionflags":
             continue
 
@@ -177,7 +177,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         return
 
     # Cheap garbage collection
-    if False and len(LRU_CACHE.keys()) >= 10:
+    if len(LRU_CACHE.keys()) >= 10:
         to_delete = [addr for addr in LRU_CACHE.keys() if addr < r2_address]
         for key in to_delete[:5]:
             del LRU_CACHE[key]
@@ -223,7 +223,7 @@ def miasm_anal(r2_op, r2_address, r2_buffer, r2_length):
         result.eob = 1  # End Of Block
 
     # Assume that an instruction starting with 'RET' is a return
-    # Note: add it to miasm2 as getpc() ?
+    # Note: add it to miasm as getpc() ?
     if instr.name[:3].upper().startswith("RET"):
         result.type = R_ANAL_OP_TYPE_RET
 
@@ -352,7 +352,7 @@ def m2_filter_IRDst(ir_list):
 
 
 def m2instruction_to_r2esil(instruction, loc_db):
-    """Convert a miasm2 instruction to a radare2 ESIL"""
+    """Convert a miasm instruction to a radare2 ESIL"""
 
     # Get the IR
     try:
@@ -380,7 +380,7 @@ def m2instruction_to_r2esil(instruction, loc_db):
 
 
 def m2expr_to_r2esil(iir, loc_db):
-    """Convert a miasm2 expression to a radare2 ESIL"""
+    """Convert a miasm expression to a radare2 ESIL"""
 
     if isinstance(iir, ExprId):
         return iir.name.lower()

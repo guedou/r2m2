@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
+// Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
 
 // r2m2 plugin that uses miasm2 as a radare2 analysis and emulation backend
 
@@ -14,7 +14,7 @@
 #define R2M2_CC_SDB_PATH "./r2m2-cc.sdb"
 
 
-static int analyze (RAnal *ranal, RAnalOp *rop, ut64 addr, const ut8 *data, int len) {
+static int analyze (RAnal *ranal, RAnalOp *rop, ut64 addr, const ut8 *data, int len, RAnalOpMask mask) {
      // If the size is set, the instruction was already processed
      // Note: this is a trick to enhance performances, as radare2 calls analyze()
      //       several times.

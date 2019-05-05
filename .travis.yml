@@ -22,7 +22,7 @@ matrix:
       language: generic
       osx_image: xcode7.3
       env:
-        - R2_VERSION=2.9.0 R2M2_OSX=yes
+        - R2_VERSION=3.4.0 R2M2_OSX=yes
 
 before_install:
   - if [ ! -z $R2M2_DOCKER ]; then docker build -t travis/r2m2 . ; fi
@@ -39,7 +39,7 @@ install:
   - if [ -z $R2M2_DOCKER ]; then export PATH=$HOME/bin/:$PATH; fi
   - if [ -z $R2M2_DOCKER ]; then export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/; fi
   # Install miasm2
-  - if [ -z $R2M2_DOCKER ]; then pip2 install pyparsing; fi
+  - if [ -z $R2M2_DOCKER ]; then pip2 install pyparsing future; fi
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/cea-sec/miasm --depth 1; fi
   # Install bats
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/sstephenson/bats --depth 1; fi

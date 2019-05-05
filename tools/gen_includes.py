@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
 
 """
 Automatically generate r2m2.h
@@ -185,6 +185,8 @@ def get_RAnalOp_structure(directory):
     RAnalOp_structure = RAnalOp_structure.replace("RStrBuf", "RStrBuf_r2m2")
     RAnalOp_structure = RAnalOp_structure.replace("RAnalSwitchOp",
                                                   "RAnalSwitchOp_r2m2")
+    RAnalOp_structure = RAnalOp_structure.replace("RAnalDataType",
+                                                  "unsigned int")
     structures.append(RAnalOp_structure)
 
     return "\n".join(structures)

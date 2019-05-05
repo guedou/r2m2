@@ -1,10 +1,10 @@
-# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
 
 # r2m2 unit tests
 
 @test "Check if miasm2 is available" {
   # Attempt to load the miasm2 Python module
-  run python2 -m miasm2.core.cpu
+  run python2 -m miasm.core.cpu
 }
 
 @test "Check if r2m2 is available" {

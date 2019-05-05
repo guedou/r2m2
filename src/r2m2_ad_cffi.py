@@ -1,16 +1,16 @@
-# Copyright (C) 2018 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
 
 """
-r2m2 plugin that uses miasm2 as a radare2 disassembly and assembly backend
+r2m2 plugin that uses miasm as a radare2 disassembly and assembly backend
 """
 
 
 import os
 import sys
 
-from miasm2.analysis.machine import Machine
-from miasm2.core.locationdb import LocationDB
-from miasm2.expression.expression import ExprInt, ExprLoc
+from miasm.analysis.machine import Machine
+from miasm.core.locationdb import LocationDB
+from miasm.expression.expression import ExprInt, ExprLoc
 
 from miasm_embedded_r2m2_ad import ffi
 
@@ -28,13 +28,13 @@ MIASM_MACHINE = None
 
 
 def miasm_machine():
-    """Retrieve a miasm2 machine using the R2M2_ARCH environment variable."""
+    """Retrieve a miasm machine using the R2M2_ARCH environment variable."""
 
     r2m2_arch = os.getenv("R2M2_ARCH")
     available_archs = Machine.available_machine()
 
     if not r2m2_arch or r2m2_arch not in available_archs:
-        message = "Please specify a valid miasm2 arch in the R2M2_ARCH "
+        message = "Please specify a valid miasm arch in the R2M2_ARCH "
         message += "environment variable !\nThe following are available: "
         message += ", ".join(available_archs)
         print >> sys.stderr, message + "\n"
@@ -59,7 +59,7 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
     # Prepare the opcode
     opcode = ffi.unpack(opcode, r2_length)
 
-    # Get the miasm2 machine
+    # Get the miasm machine
     machine = miasm_machine()
     if machine is None:
         return
@@ -108,7 +108,6 @@ def miasm_dis(r2_op, r2_address, r2_buffer, r2_length):
     # Fill the RAsmOp structure
     rasmop.size = dis_len
     set_rbuf(rasmop.buf_asm, dis_str)
-    set_rbuf(rasmop.buf_hex, buf_hex)
 
 
 @ffi.def_extern()
@@ -119,16 +118,16 @@ def miasm_asm(r2_op, r2_address, r2_buffer):
     rasmop = ffi.cast("RAsmOp_r2m2*", r2_op)
     mn_str = ffi.string(r2_buffer)
 
-    # miasm2 only parses upper case mnemonics
+    # miasm only parses upper case mnemonics
     mn_str = mn_str.upper()
     mn_str = mn_str.replace("X", "x")  # hexadecimal
 
-    # Get the miasm2 machine
+    # Get the miasm machine
     machine = miasm_machine()
     if machine is None:
         return
 
-    # Get the miasm2 mnemonic object
+    # Get the miasm mnemonic object
     mn = machine.mn()
 
     # Assemble and return all possible candidates
@@ -142,17 +141,12 @@ def miasm_asm(r2_op, r2_address, r2_buffer):
         instr.fixDstOffset()
     asm_instr = [i for i in mn.asm(instr)][0]
 
-    # Assembled instructions in hexadecimal
-    buf_hex = asm_instr.encode("hex")
-
     # Check buffer sizes
     if len(asm_instr)-1 > 256:
         print >> sys.stderr, "/!\ Assembled instruction is too long /!\\"
         return
-    if len(buf_hex)-1 > 256:
-        buf_hex = buf_hex[:255]
 
     # Fill the RAsmOp structure
     rasmop.size = len(asm_instr)
     set_rbuf(rasmop.buf, asm_instr)
-    set_rbuf(rasmop.buf_hex, buf_hex)
+    rasmop.buf.len = len(asm_instr)
