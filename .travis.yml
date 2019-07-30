@@ -9,7 +9,7 @@ matrix:
       virtualenv:
           system_site_packages: true
       env:
-        - R2_VERSION=2.9.0 R2M2_UBUNTU=yes
+        - R2_VERSION=3.7.0 R2M2_UBUNTU=yes
 
     - os: linux
       dist: trusty
@@ -22,7 +22,7 @@ matrix:
       language: generic
       osx_image: xcode7.3
       env:
-        - R2_VERSION=3.4.0 R2M2_OSX=yes
+        - R2_VERSION=3.7.0 R2M2_OSX=yes
 
 before_install:
   - if [ ! -z $R2M2_DOCKER ]; then docker build -t travis/r2m2 . ; fi
@@ -32,15 +32,14 @@ install:
   # Install C related dependencies
   - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install make gcc git pkg-config; fi
   # Install Python related dependencies
-  - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install libffi-dev libpython-dev; fi
+  - if [ ! -z $R2M2_UBUNTU ]; then sudo apt-get install libffi-dev libpython-dev python-all-dev; fi
   - if [ -z $R2M2_DOCKER ]; then pip2 install cffi jinja2; fi
   # Install radare2
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/radare/radare2 --depth 1 --branch $R2_VERSION; cd radare2; ./configure; cd shlr; make capstone-sync; cd ..; ./sys/user.sh --without-pull; cd ..; fi
   - if [ -z $R2M2_DOCKER ]; then export PATH=$HOME/bin/:$PATH; fi
   - if [ -z $R2M2_DOCKER ]; then export PKG_CONFIG_PATH=~/bin/prefix/radare2/lib/pkgconfig/; fi
   # Install miasm2
-  - if [ -z $R2M2_DOCKER ]; then pip2 install pyparsing future; fi
-  - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/cea-sec/miasm --depth 1; fi
+  - if [ -z $R2M2_DOCKER ]; then pip2 install -r requirements.txt; fi
   # Install bats
   - if [ -z $R2M2_DOCKER ]; then git clone https://github.com/sstephenson/bats --depth 1; fi
   - if [ -z $R2M2_DOCKER ]; then export PATH=bats/bin:$PATH; fi

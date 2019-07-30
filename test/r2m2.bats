@@ -73,7 +73,7 @@
   # Assemble JMP
   rasm2 -B 'JMP 0x28' > binary
   # Call r2
-  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'pd 1' binary)
+  result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'e scr.color=0; pd 1' binary)
   echo $result
   [[ $result == *",=<"* ]]
   [[ $result == *"0x100000028"* ]]

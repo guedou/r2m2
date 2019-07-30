@@ -1,0 +1,3 @@
+future
+pyparsing
+git+https://github.com/cea-sec/miasm@master

@@ -15,16 +15,29 @@ from jinja2 import Environment, FileSystemLoader
 
 
 def preprocessor(include_directory, include_filename):
-    """Call gcc preprocessor on the include file."""
+    """Call a C preprocessor on the include file."""
 
-    command = ["gcc", "-E", "-I%s" % include_directory, include_filename]
+    use_clang = False
+
+    command = ["-E", "-I%s" % include_directory, include_filename]
 
     try:
-        processed = subprocess.check_output(command)
+        processed = subprocess.check_output(["gcc"] + command)
     except OSError:
-        sys.exit("preprocessor(): gcc can't be executed !")
+        use_clang = True
     except subprocess.CalledProcessError as cpe:
         sys.exit("preprocessor(): got %s" % cpe)
+
+    if not use_clang:
+        return processed
+
+    try:
+        processed = subprocess.check_output(["clang"] + command)
+    except OSError:
+        sys.exit("preprocessor(): gcc & clang can't be executed!")
+    except subprocess.CalledProcessError as cpe:
+        sys.exit("preprocessor(): got %s" % cpe)
+
 
     return processed
 
@@ -86,7 +99,7 @@ def get_RAsmOp_structure(directory):
     filename = "%s/r_util/r_mem.h" % directory
     include_content = preprocessor(directory, filename)
 
-    # Extract the RBuffer structure
+    # Extract the RMmap structure
     RMmap_structure = extract_structure(include_content,
                                         "RMmap").replace("ut8",
                                                          "unsigned char")
@@ -99,15 +112,28 @@ def get_RAsmOp_structure(directory):
     # Extract the RList structure
     RList_structure = get_RList(directory)
 
-    # Extract the RBuffer structure
-    RBuffer_structure = extract_structure(include_content,
-                                          "RBuffer").replace("ut8",
+    # Extract the RBufferMethods structure
+    RBufferMethods_structure = extract_structure(include_content,
+                                          "RBufferMethods").replace("ut8",
                                                              "unsigned char")
-    RBuffer_structure = RBuffer_structure.replace("ut64", "unsigned long long")
-    RBuffer_structure = RBuffer_structure.replace("st64", "long long")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferInit", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferFini", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferRead", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferWrite", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferGetSize", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferResize", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferSeek", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferGetWholeBuf", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferFreeWholeBuf", "void *")
+    RBufferMethods_structure = RBufferMethods_structure.replace("RBufferNonEmptyList", "void *")
+
+    # Extract the RBuffer structure
+    tmp_structure = get_between(include_content, "struct r_buf_t {", "};")
+    RBuffer_structure = "typedef %s RBuffer_r2m2;" % tmp_structure[:-1]
+    RBuffer_structure = RBuffer_structure.replace("ut8", "unsigned char")
     RBuffer_structure = RBuffer_structure.replace("bool", "char")
-    RBuffer_structure = RBuffer_structure.replace("RMmap", "RMmap_r2m2")
-    RBuffer_structure = RBuffer_structure.replace("RList", "RList_r2m2")
+    RBuffer_structure = RBuffer_structure.replace("RBufferMethods", "RBufferMethods_r2m2")
+    RBuffer_structure = RBuffer_structure.replace("r_buf_t", "r_buf_t_r2m2")
 
     # Get the preprocessed include file content
     filename = "%s/r_asm.h" % directory
@@ -128,8 +154,8 @@ def get_RAsmOp_structure(directory):
     RStrBuf_structure = extract_structure(include_content, "RStrBuf")
     RAsmOp_structure = RAsmOp_structure.replace("RStrBuf", "RStrBuf_r2m2")
 
-    return RList_structure + RMmap_structure + RBuffer_structure + \
-        RStrBuf_structure + RAsmOp_structure
+    return RList_structure + RMmap_structure + RBufferMethods_structure + \
+        RBuffer_structure + RStrBuf_structure + RAsmOp_structure
 
 
 def get_RAnalOp_structure(directory):
