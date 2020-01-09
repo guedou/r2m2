@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2020 Guillaume Valadon <guillaume@valadon.net>
 
 """
 r2m2 plugin that uses miasm as a radare2 analysis and emulation backend
@@ -314,7 +314,7 @@ def r2_anal_splitflow(analop, address, instruction, expression, loc_db):
         if isinstance(expression, ExprLoc):
             jmp_address = loc_db.get_location_offset(expression.loc_key)
         else:
-            jmp_address = int(expression.arg)
+            jmp_address = int(expression.ptr)
         analop.jump = jmp_address & 0xFFFFFFFFFFFFFFFF
         analop.fail = (address + instruction.l) & 0xFFFFFFFFFFFFFFFF
 
@@ -331,7 +331,7 @@ def r2_anal_subcall(analop, expression, loc_db):
         analop.jump = loc_db.get_location_offset(expression.loc_key)
     elif isinstance(expression, ExprInt):
         analop.type = R_ANAL_OP_TYPE_CALL
-        analop.jump = int(expression.arg) & 0xFFFFFFFFFFFFFFFF
+        analop.jump = int(expression.ptr) & 0xFFFFFFFFFFFFFFFF
     else:
         analop.type = R_ANAL_OP_TYPE_UCALL
 
@@ -392,7 +392,7 @@ def m2expr_to_r2esil(iir, loc_db):
         return hex(iir.arg)
 
     if isinstance(iir, ExprMem):
-        ret = "%s,[%d]" % (m2expr_to_r2esil(iir.arg, loc_db), iir.size/8)
+        ret = "%s,[%d]" % (m2expr_to_r2esil(iir.ptr, loc_db), iir.size/8)
         return ret.lower()
 
     elif isAssignation(iir):
@@ -401,7 +401,7 @@ def m2expr_to_r2esil(iir, loc_db):
             return "%s,%s,=" % (m2expr_to_r2esil(iir.src, loc_db), esil_dst)
         else:
             esrc = m2expr_to_r2esil(iir.src, loc_db)
-            edst = m2expr_to_r2esil(iir.dst.arg, loc_db)
+            edst = m2expr_to_r2esil(iir.dst.ptr, loc_db)
             return "%s,%s,=[]" % (esrc, edst)
 
     elif isinstance(iir, ExprOp):

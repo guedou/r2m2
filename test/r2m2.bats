@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Guillaume Valadon <guillaume@valadon.net>
+# Copyright (C) 2020 Guillaume Valadon <guillaume@valadon.net>
 
 # r2m2 unit tests
 
@@ -75,7 +75,7 @@
   # Call r2
   result=$(R2M2_ARCH=x86_64 r2 -a r2m2 -m 0x100000000 -qc 'e scr.color=0; pd 1' binary)
   echo $result
-  [[ $result == *",=<"* ]]
+  [[ $result == *"<"* ]]
   [[ $result == *"0x100000028"* ]]
 }
 
